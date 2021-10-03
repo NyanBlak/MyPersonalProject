@@ -27,7 +27,7 @@ class GameState:
         self.board[0] = ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR']
         self.board[1] = ['bP' for i in range(8)]
         self.board[6] = ['wP' for i in range(8)]
-        self.board[7] = ['wR', 'wN', 'wB', 'wQ', 'wK', ' ', ' ', 'wR']
+        self.board[7] = ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']
 
     def check_player_move(self, piece:str):
         if piece[0] == 'w' and self.white_to_move == True:
