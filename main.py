@@ -129,7 +129,7 @@ class Game:
     def load_images(self):
         self.images = {}
         for piece in self.pieces:
-            self.images[piece] = pygame.transform.scale(pygame.image.load(f"Images/{piece}.png"), (SQ_SIZE, SQ_SIZE))
+            self.images[piece] = pygame.transform.scale(pygame.image.load(f"Themes/{config['theme_set']}/{piece}.png"), (SQ_SIZE, SQ_SIZE))
 
     def promote(self, pos:tuple[int, int]):
         piece = self.state.board[pos[0]][pos[1]]
