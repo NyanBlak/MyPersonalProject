@@ -25,7 +25,6 @@ DARK_COLOR = PURPLE
 
 SQ_SIZE = int(WIDTH / DIM) # 768/8 = 96
 HIGHLIGHT_THICKNESS = 4
-BUTTON_COLOR = BLACK
 
 class Game:
 
@@ -71,7 +70,7 @@ class Game:
                     self.square_selected = row, col
                     self.clicks.append(self.square_selected)
                     if len(self.clicks) == 2: # if the self.clicks licks is 2 long
-                        self.successful_move()
+                        self.play_move()
                     else: # First click, check if the piece is of the correct color, if not clears the click log
                         piece = self.state.board[self.clicks[0][0]][self.clicks[0][1]]
                         if self.state.check_player_move(piece):
@@ -80,24 +79,49 @@ class Game:
                         else:
                             self.clicks = []
 
-    def successful_move(self):
+    def play_move(self):
         start_square = self.clicks[0][0], self.clicks[0][1]
         end_square = self.clicks[1][0], self.clicks[1][1]
         move = Move(start_square, end_square, self.state.board)
         if move.is_move_legal(self.moves): # if the move is legal
-            self.state.move_list.append(move.notation)
-            move.check_enpassant(self.state.white_to_move, self.state.move_list, self.state.board)
-            move.move_piece()
-            promotion = self.state.check_promotion(end_square)
-            if promotion:
-                self.promote(end_square)
-            self.clicks = []
-            self.highlighted = None
-            self.state.white_to_move = not self.state.white_to_move
+            self.successful_move(move)
+        else: # otherwise, the move is illegal
+            self.unsuccesful_move()
+
+    def successful_move(self, move):
+        self.state.move_list.append(move.notation)
+        move.check_enpassant(self.state.white_to_move, self.state.move_list, self.state.board)
+        move.move_piece()
+        promotion = self.state.check_promotion(move.end_square)
+        
+        if promotion:
+            self.promote(move.end_square)
+
+        if move.castling:
+            # if kingside castling, rook is -1 away from the king, otherwise its 1 away
+            if move.end_square in [(7, 6), (0, 6)]:
+                new_rook_col = -1
+                old_rook_col = 1
+            else:
+                new_rook_col = 1
+                old_rook_col = -2
+
+            self.state.board[move.end_row][move.end_col+old_rook_col] = " "
+            self.state.board[move.end_row][move.end_col+new_rook_col] = move.piece_moved[0] + "R"
+
+        self.clicks = []
+        self.highlighted = None
+        self.state.white_to_move = not self.state.white_to_move
+        print(self.state.move_list[-1])
+
+    def unsuccesful_move(self):
+        if self.state.board[self.clicks[1][0]][self.clicks[1][1]] != " ":
+            self.highlight_piece(self.clicks[1])
+            self.clicks = [self.clicks[1]]
         else:
-            self.clicks = []
             self.highlighted = None
-        print(self.state.move_list)
+            self.clicks = []
+
 
     def highlight_piece(self, pos:tuple):
         row, col = pos

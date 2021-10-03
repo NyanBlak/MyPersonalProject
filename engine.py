@@ -27,7 +27,7 @@ class GameState:
         self.board[0] = ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR']
         self.board[1] = ['bP' for i in range(8)]
         self.board[6] = ['wP' for i in range(8)]
-        self.board[7] = ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']
+        self.board[7] = ['wR', 'wN', 'wB', 'wQ', 'wK', ' ', ' ', 'wR']
 
     def check_player_move(self, piece:str):
         if piece[0] == 'w' and self.white_to_move == True:
@@ -44,7 +44,6 @@ class GameState:
         king_moves = []
         all_moves = self.all_possible_moves()
         legal_moves = all_moves
-        self.safe_king_squares(all_moves, legal_moves)
         return legal_moves
 
     def all_possible_moves(self):
@@ -59,12 +58,6 @@ class GameState:
                     func = self.funcs[piece]
                     func(r, c, moves)
         return moves
-
-    def safe_king_squares(self, all_moves:list, legal_moves:list):
-        pass
-
-    def check_checks(self, square:tuple[int, int]):
-        pass
 
     def get_pawn_moves(self, row, col, moves):
         if self.white_to_move:
@@ -206,6 +199,12 @@ class GameState:
             elif self.board[end_row][end_col] == " " or opposing_team in self.board[end_row][end_col]:
                 moves.append([start_square, end_square])
 
+        legal_castling = self.check_castling_rights(start_square)
+        if legal_castling != []:
+            for move in legal_castling:
+                moves.append(move)
+
+
     def get_knight_moves(self, row, col, moves):
         directions = [
             (2, 1), (1, 2), 
@@ -266,6 +265,34 @@ class GameState:
                         return (True, 1)
         return (False,)
 
+    def check_castling_rights(self, king_pos:tuple[int, int]):
+        W_STARTING_KING_SQUARE = (7, 4)
+        B_STARTING_KING_SQUARE = (0, 4)
+
+        legal_castling_moves = []
+        row, col = king_pos
+
+        if self.white_to_move:
+            team = 'w'
+            starting_king_square = W_STARTING_KING_SQUARE
+            starting_row = 7
+        else:
+            team = 'b'
+            starting_king_square = B_STARTING_KING_SQUARE
+            starting_row = 0
+        rook = team + 'R'
+
+        if king_pos != starting_king_square:
+            return []
+
+        if self.board[starting_row][0] == rook: # check if queenside castling is legal
+            if self.board[starting_row][3] == " " and self.board[starting_row][2] == " ":
+                legal_castling_moves.append([king_pos, (row, col-2)])
+        if self.board[starting_row][7] == rook: # check if kingside castling is legal
+            if self.board[starting_row][5] == " " and self.board[starting_row][6] == " ":
+                legal_castling_moves.append([king_pos, (row, col+2)])
+
+        return legal_castling_moves
 
 class Move:
 
@@ -283,6 +310,8 @@ class Move:
 
         self.piece_moved = self.board[self.start_row][self.start_col]
         self.piece_captured = self.board[self.end_row][self.end_col]
+
+        self.castling = self.is_move_castling()
         self.notation = self.get_algebraic_notation()
 
 
@@ -290,6 +319,12 @@ class Move:
         originating_file = Move.col_to_file[self.start_col]
         file = Move.col_to_file[self.end_col]
         rank = Move.row_to_rank[self.end_row]
+
+        if self.piece_moved[1] == 'K' and self.castling:
+            if self.end_col == 6:
+                return "O-O"
+            else:
+                return "O-O-O"
 
         if self.piece_moved[1] == 'P' and originating_file != file: 
             notated_piece_moved = originating_file
@@ -323,6 +358,12 @@ class Move:
                 if enpassanted_piece == opposite_pawn:
                     if self.piece_moved[1] == "P":
                         board[self.end_row+numvar][self.end_col] = " "
+        return False
+
+    def is_move_castling(self):
+        if "K" in self.piece_moved:
+            if abs(self.start_col - self.end_col) == 2:
+                return True
         return False
 
     def move_piece(self):
