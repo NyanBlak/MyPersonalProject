@@ -1,4 +1,3 @@
-from main import LIGHT_COLOR
 import pygame
 
 DIM = 8

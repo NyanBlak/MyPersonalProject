@@ -1,30 +1,23 @@
 import pygame
+import json
 from engine import *
 
-size = WIDTH, HEIGHT = 768, 768
 FPS = 15
-
 DIM = 8 # 8x8 board
-
 WHITE = 255, 255, 255
-GRAY = 100, 100, 100
-BLACK = 0, 0, 0
 
-PURPLE = 136, 121, 181
-SOFT_WHITE = 239, 239, 239
+with open("config.json") as file:
+    config = json.load(file)
+    file.close()
 
-NAVY_BLUE = 77, 116, 152
-BEIGE_WHITE = 234, 233, 211
+LIGHT_COLOR = config["light_square_color"]
+DARK_COLOR = config["dark_square_color"]
+WIDTH = HEIGHT = config["resolution"]
+HIGHLIGHT_COLOR = config["highlight_color"]
+HIGHLIGHT_THICKNESS = config["highlight_thickness"]
 
-RED = 255, 0, 0
-GREEN = 0, 255, 0
-BLUE = 0, 0, 255
-
-LIGHT_COLOR = SOFT_WHITE
-DARK_COLOR = PURPLE
-
+size = WIDTH, HEIGHT 
 SQ_SIZE = int(WIDTH / DIM) # 768/8 = 96
-HIGHLIGHT_THICKNESS = 4
 
 class Game:
 
@@ -131,7 +124,7 @@ class Game:
 
     def check_highlighted_piece(self):
         if self.highlighted != None:
-            pygame.draw.rect(self.screen, RED, self.highlighted, HIGHLIGHT_THICKNESS)
+            pygame.draw.rect(self.screen, HIGHLIGHT_COLOR, self.highlighted, HIGHLIGHT_THICKNESS)
 
     def load_images(self):
         self.images = {}
