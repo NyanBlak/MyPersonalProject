@@ -1,0 +1,8 @@
+{
+	"resolution" : 768,
+	"light_square_color" : [239, 239, 239],
+	"dark_square_color" : [136, 121, 181],
+	"theme_set" : "CrayCrayPieces",
+	"highlight_color" : [255, 0, 0],
+	"highlight_thickness": 4
+}
