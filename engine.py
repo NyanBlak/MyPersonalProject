@@ -22,6 +22,10 @@ class GameState:
             "N": self.get_knight_moves
         }
 
+    def reset_game(self):
+        self.__init__()
+        self.create_start_pos()
+
     def create_start_pos(self):
         self.board[0] = ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR']
         self.board[1] = ['bP' for i in range(8)]
@@ -37,6 +41,22 @@ class GameState:
             return True
         else:
             return False
+
+    def check_winner(self):
+        white_wins = True
+        black_wins = True
+        for r in range(DIM):
+            for c in range(DIM):
+                if self.board[r][c] == "wK":
+                    black_wins = False
+                elif self.board[r][c] == "bK":
+                    white_wins = False
+        if white_wins:
+            return "White Wins! "
+        elif black_wins:
+            return "Black Wins! "
+        else:
+            return None
 
     def all_legal_moves(self):
         legal_moves = []
@@ -295,6 +315,18 @@ class GameState:
 
 class Move:
 
+    # Dictionaries that translate the grid notation
+    # (starting in the top right corner with 0, 0 and going
+    # right and down in +1 increments) to rank-file notation
+
+    # ranks are rows which are from whites perspective starting
+    # from bottom to top numbered 1, 2, 3... up to 8
+
+    # files are the columns also from whites perspective starting
+    # from left to right labeled a, b, c, d... up till h
+
+    # Squares in rank-file notation are labeled by the file
+    # letter then the rank number (ex: e4, d8, a3, h2)
     row_to_rank = {7: "1", 6: "2", 5: "3", 4: "4", 3: "5", 2: "6", 1: "7", 0: "8"}
     col_to_file = {0: "a", 1: "b", 2: "c", 3: "d", 4: "e", 5: "f", 6: "g", 7: "h"}
 
@@ -315,6 +347,9 @@ class Move:
 
 
     def get_algebraic_notation(self):
+        # gets the algebraic notation of the move
+        # ex: pawn to e4 is e4, kingside castles is O-O,
+        # knight to c4 is Nc4, queen to h7 is Qh7, etc.
         originating_file = Move.col_to_file[self.start_col]
         file = Move.col_to_file[self.end_col]
         rank = Move.row_to_rank[self.end_row]
@@ -340,37 +375,52 @@ class Move:
 
         return f"{notated_piece_moved}{capture_str}{file}{rank}"
 
-    def check_enpassant(self, white_to_move:bool, move_list:list, board:list):
-        if len(move_list) < 2:
+    def check_enpassant(self, state):
+        if len(state.move_list) < 2:
             return None
-        if white_to_move:
-            numvar = 1
+        # If it is whites turn, then the move that allow
+        # en passant would come from black, and that would include
+        # any pawn move that goes two spaces forward
+
+        # direction is the the direction that the pawn moves
+        # in rows.
+
+        # opposite pawn is the pawn of the opposite color 
+        if state.white_to_move:
+            direction = 1
             moves_ep = b_pawn_moves_that_allow_ep
             opposite_pawn = "bP"
         else:
-            numvar = -1
+            direction = -1
             moves_ep = w_pawn_moves_that_allow_ep
             opposite_pawn = "wP"
-        if move_list[-2] in moves_ep:
+        if state.move_list[-2] in moves_ep:
             if self.piece_captured == " ":
-                enpassanted_piece = self.board[self.end_row+numvar][self.end_col]
+                enpassanted_piece = self.board[self.end_row+direction][self.end_col]
                 if enpassanted_piece == opposite_pawn:
                     if self.piece_moved[1] == "P":
-                        board[self.end_row+numvar][self.end_col] = " "
+                        self.board[self.end_row+direction][self.end_col] = " "
         return False
 
     def is_move_castling(self):
+        # Checks if the current move is castling, by
+        # checking if the piece moved is a King and
+        # if the King moved 2 columns over in this move
         if "K" in self.piece_moved:
             if abs(self.start_col - self.end_col) == 2:
                 return True
         return False
 
     def move_piece(self):
+        # moves the piece by making the starting square
+        # empty and the end square the piece that moved
         self.board[self.start_row][self.start_col] = " "
         self.board[self.end_row][self.end_col] = self.piece_moved
-        return True
 
-    def is_move_legal(self, legal_moves):
-        if ([(self.start_row, self.start_col), (self.end_row, self.end_col)]) in legal_moves:
+    def is_move_legal(self, moves):
+        # checks if the current move is legal by checking
+        # if the current move (type = list) is in the list
+        # of moves given
+        if ([(self.start_square), (self.end_square)]) in moves:
             return True
         return False
