@@ -10,6 +10,9 @@ b_pawn_moves_that_allow_ep = ["a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5"]
 class GameState:
 
     def __init__(self):
+        # initializes the game state with its
+        # basic attributes (board, white_to_move,
+        # move_list, etc.)
         self.board = [[" " for i in range(8)] for i in range(8)]
         self.white_to_move = True
         self.move_list = []
@@ -23,16 +26,21 @@ class GameState:
         }
 
     def reset_game(self):
+        # resets the game state by reinitializing it
+        # and re-creating the start position
         self.__init__()
         self.create_start_pos()
 
     def create_start_pos(self):
+        # creates the basic start position of any chess game
         self.board[0] = ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR']
         self.board[1] = ['bP' for i in range(8)]
         self.board[6] = ['wP' for i in range(8)]
         self.board[7] = ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']
 
     def check_player_move(self, piece:str):
+        # checks if the piece that is given
+        # is allowed to be moved this turn
         if piece[0] == 'w' and self.white_to_move == True:
             return True
         elif piece[0] == 'w' and self.white_to_move == False:
@@ -43,6 +51,9 @@ class GameState:
             return False
 
     def check_winner(self):
+        # Checks if both kings are on the board
+        # if one of them is not there, the player
+        # who doesn't have a king loses
         white_wins = True
         black_wins = True
         for r in range(DIM):
@@ -59,13 +70,15 @@ class GameState:
             return None
 
     def all_legal_moves(self):
-        legal_moves = []
-        king_moves = []
+        # finds all legal moves by first finding
+        # all possible moves ... (WIP)
         all_moves = self.all_possible_moves()
         legal_moves = all_moves
         return legal_moves
 
     def all_possible_moves(self):
+        # finds all possible moves with each
+        # get_[piece]_moves function
         moves = []
         for r in range(DIM):
             for c in range(DIM):
@@ -79,6 +92,18 @@ class GameState:
         return moves
 
     def get_pawn_moves(self, row, col, moves):
+        # gets all pawn moves by first getting
+        # the direction that pawns go by
+        # seeing who's turn it is, if it's
+        # white to move, then pawns move -1
+        # rows (up), otherwise they move
+        # +1 row (down). Next, checks if the
+        # space in front of the pawn is occupied
+        # and checks if the spaces diagonal to
+        # the pawn are occupied by an
+        # opposing piece. Also, checks if en
+        # passant is legal with
+        # check_enpassant()
         if self.white_to_move:
             opposing_team = 'b'
             direction = -1
@@ -119,6 +144,13 @@ class GameState:
             moves.append([start_square, ep_end_square])
 
     def get_rook_moves(self, row, col, moves):
+        # Gets rook moves by iteration over
+        # directions list (horizontal direciton) 
+        # and continuing
+        # adding to each direction until
+        # the loop encounters a any other piece
+        # and checks if the piece is capturable
+        # (if its from the opposing team)
         directions = [(1, 0), (0, 1), (-1, 0), (0, -1)]
         start_square = row, col
 
@@ -146,6 +178,13 @@ class GameState:
                     break
 
     def get_bishop_moves(self, row, col, moves):
+        # Gets bishop moves by iteration over
+        # directions list (diagonal directions)
+        # and continuing
+        # adding to each direction until
+        # the loop encounters a any other piece
+        # and checks if the piece is capturable
+        # (if its from the opposing team)
         directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
         start_square = row, col
 
@@ -173,6 +212,8 @@ class GameState:
                     break
 
     def get_queen_moves(self, row, col, moves):
+        # Gets queen moves by combining logic from
+        # bishop and queen in to one function
         directions = [
             (1, 1), (1, -1), (-1, 1), (-1, -1),
             (1, 0), (0, 1), (-1, 0), (0, -1)
@@ -203,6 +244,11 @@ class GameState:
                     break
 
     def get_king_moves(self, row, col, moves):
+        # Gets all king moves by checking if the
+        # from the start square are either occupied
+        # by nothing or by an opposing piece.
+        # Also checks if castling is legal with
+        # self.check_castling_rights() function
         directions = [
             (1, 1), (1, -1), (-1, 1), (-1, -1),
             (1, 0), (0, 1), (-1, 0), (0, -1)
@@ -225,6 +271,9 @@ class GameState:
 
 
     def get_knight_moves(self, row, col, moves):
+        # Gets all knight moves by checking if the directions 
+        # from the start square are either occupied by nothing
+        # or by an opposing piece
         directions = [
             (2, 1), (1, 2), 
             (2, -1), (1, -2),
@@ -249,6 +298,11 @@ class GameState:
                     moves.append([start_square, end_square])
 
     def check_promotion(self, pos:tuple[int, int]):
+        # checks if a pawn has reached the 8th or 1st rank
+        # will promote it to a queen at the moment, this must
+        # be changed to allow for under promotion to at least
+        # a knight, however bishops and rooks should also
+        # be included
         row, col = pos
         team = self.board[row][col][0]
         for w_square in self.board[0]: # for square in 8th rank
@@ -258,6 +312,10 @@ class GameState:
                     self.board[row][col] = team + promote_to
     
     def check_enpassant(self, pos:tuple[int, int]):
+        # checks if en passant is legal by checking if
+        # the last move played was a pawn up two squares
+        # and if there is a pawn on the correct row
+        # to actually play en passant
         if len(self.move_list) == 0:
             return (False,)
         last_move = self.move_list[-1]
@@ -285,6 +343,10 @@ class GameState:
         return (False,)
 
     def check_castling_rights(self, king_pos:tuple[int, int]):
+        # checks if castling is legal on either side
+        # by checking if the king has moved from its
+        # starting square and if the rooks have
+        # moved from their starting squares
         W_STARTING_KING_SQUARE = (7, 4)
         B_STARTING_KING_SQUARE = (0, 4)
 
@@ -331,6 +393,10 @@ class Move:
     col_to_file = {0: "a", 1: "b", 2: "c", 3: "d", 4: "e", 5: "f", 6: "g", 7: "h"}
 
     def __init__(self, start_square:tuple[int, int], end_square:tuple[int,int], board):
+        # initalizes the move with its required attributes
+        # (board, start_square(row, col), end_square(row, col),
+        # the piece that moved, the piece/space that is being
+        # "captured", the pieces notation, etc.)
         self.board = board
         self.start_square = start_square
         self.start_row = start_square[0]

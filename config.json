@@ -4,6 +4,6 @@
 	"dark_square_color" : [136, 121, 181],
 	"theme_set" : "BasicPieces",
 	"select_color" : [255, 0, 0],
-	"move_highlight_color" : [0, 255, 0],
+	"move_highlight_color" : [0, 0, 255],
 	"highlight_thickness": 4
 }

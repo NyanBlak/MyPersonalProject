@@ -3,8 +3,8 @@ import engine as engine
 import os
 import json
 
-path = os.getcwd()
-with open(path + "/config.json") as file:
+path = os.path.abspath(os.getcwd())
+with open(os.path.join(path, "config.json")) as file:
     config = json.load(file)
     file.close()
 

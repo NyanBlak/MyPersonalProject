@@ -5,16 +5,16 @@ from engine import *
 from tkinter import Tk
 from tkinter import messagebox
 
-Tk().wm_withdraw() #to hide the main window
+Tk().wm_withdraw() # to hide the main window of tkinter
 
-FPS = 15
+FPS = 30
 DIM = 8 # 8x8 board
 WHITE = 255, 255, 255
 BASE_HLIGHT_LIST = [" ", " ", " "]
 
-path = os.getcwd()
+path = os.path.abspath(os.getcwd())
 
-with open(path + "/config.json") as file:
+with open(os.path.join(path, "config.json")) as file:
     config = json.load(file)
     file.close()
 
@@ -67,7 +67,7 @@ class Game:
                 if self.square_selected == (row, col): # If same square is selected twice
                     self.square_selected = ()
                     self.clicks = []
-                    self.highlighted = []
+                    self.highlighted[0] = " "
                 else:
                     self.square_selected = row, col
                     self.clicks.append(self.square_selected)
@@ -91,7 +91,12 @@ class Game:
             self.highlight_move(move)
             winner = self.state.check_winner()
             if winner != None:
+                if not self.state.white_to_move:
+                    pygame.display.set_icon(self.icon_w)
+                else:
+                    pygame.display.set_icon(self.icon_b)
                 if messagebox.askyesno(title=winner,message=winner + "Play Again?"):
+                    self.highlighted = BASE_HLIGHT_LIST
                     self.state.reset_game()
                 else:
                     self.running = False
@@ -157,9 +162,16 @@ class Game:
                 pygame.draw.rect(self.screen, i[1], i[0], HIGHLIGHT_THICKNESS)
 
     def load_images(self):
+        self.icon_w = pygame.image.load(os.path.join(path, "Images", "Icon0.png"))
+        self.icon_b = pygame.image.load(os.path.join(path, "Images", "Icon1.png"))
+        pygame.display.set_icon(self.icon_w)
         self.images = {}
         for piece in self.pieces:
-            self.images[piece] = pygame.transform.scale(pygame.image.load(path + f"/Themes/{config['theme_set']}/{piece}.png"), (SQ_SIZE, SQ_SIZE))
+            self.images[piece] = pygame.transform.scale(
+                pygame.image.load(
+                    os.path.join(path, "Themes", f"{config['theme_set']}", f"{piece}.png")),
+                    (SQ_SIZE, SQ_SIZE)
+            )
 
     def promote(self, pos:tuple[int, int]):
         piece = self.state.board[pos[0]][pos[1]]
