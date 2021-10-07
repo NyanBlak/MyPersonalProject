@@ -85,7 +85,7 @@ class Game:
     def play_move(self):
         start_square = self.clicks[0][0], self.clicks[0][1]
         end_square = self.clicks[1][0], self.clicks[1][1]
-        move = Move(start_square, end_square, self.state.board)
+        move = Move(start_square, end_square, self.state)
         if move.is_move_legal(self.moves): # if the move is legal
             self.successful_move(move)
             self.highlight_move(move)
@@ -104,12 +104,36 @@ class Game:
             self.unsuccesful_move()
 
     def successful_move(self, move):
+        self.run_move_checks(move)
+        self.state.move_piece(move)
+
+
+        self.clicks = []
+        self.highlighted = BASE_HLIGHT_LIST
+        self.state.white_to_move = not self.state.white_to_move
+
         self.state.move_list.append(move.notation)
-        move.check_enpassant(self.state)
-        move.move_piece()
-        promotion = self.state.check_promotion(move.end_square)
-        
-        if promotion:
+        print(self.state.move_list[-1])
+
+    def unsuccesful_move(self):
+        # if the second click is not an empty space and is on the correct team
+        # then the highlighted piece changes
+        # otherwise self.clicks resets and no piece is highlighted
+        end_square = self.state.board[self.clicks[1][0]][self.clicks[1][1]]
+        team = "w" if self.state.white_to_move else "b"
+        if team in end_square:
+            self.highlight_piece(self.clicks[1])
+            self.clicks = [self.clicks[1]]
+        else:
+            self.highlighted = BASE_HLIGHT_LIST
+            self.clicks = []
+
+    def run_move_checks(self, move):
+        if move.enpassant:
+            print('yeet')
+            self.state.board[move.end_row + move.ep_direction][move.end_col] = " "
+
+        if move.promotion:
             self.promote(move.end_square)
 
         if move.castling:
@@ -127,23 +151,6 @@ class Game:
             self.state.board[move.end_row][move.end_col+old_rook_col] = " "
             self.state.board[move.end_row][move.end_col+new_rook_col] = move.piece_moved[0] + "R"
 
-        self.clicks = []
-        self.highlighted = BASE_HLIGHT_LIST
-        self.state.white_to_move = not self.state.white_to_move
-        print(self.state.move_list[-1])
-
-    def unsuccesful_move(self):
-        # if the second click is not an empty space and is on the correct team
-        # then the highlighted piece changes
-        # otherwise self.clicks resets and no piece is highlighted
-        end_square = self.state.board[self.clicks[1][0]][self.clicks[1][1]]
-        team = "w" if self.state.white_to_move else "b"
-        if team in end_square:
-            self.highlight_piece(self.clicks[1])
-            self.clicks = [self.clicks[1]]
-        else:
-            self.highlighted = BASE_HLIGHT_LIST
-            self.clicks = []
 
     def highlight_move(self, move):
         start_box = [move.start_col*SQ_SIZE, move.start_row*SQ_SIZE, SQ_SIZE, SQ_SIZE]
@@ -177,7 +184,6 @@ class Game:
         piece = self.state.board[pos[0]][pos[1]]
         to_promote = "Q"
         self.state.board[pos[0]][pos[1]] = piece[0] + to_promote
-
 
     def draw(self):
         self.screen.fill(WHITE)
