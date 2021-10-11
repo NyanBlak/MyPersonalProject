@@ -36,7 +36,7 @@ class Game:
         self.screen = pygame.display.set_mode(size)
         self.clock = pygame.time.Clock()
         self.running = True
-        self.highlighted = BASE_HLIGHT_LIST
+        self.highlighted = [" ", " ", " "]
         self.buttons = None
 
         self.state = GameState()
@@ -96,7 +96,7 @@ class Game:
                 else:
                     pygame.display.set_icon(self.icon_b)
                 if messagebox.askyesno(title=winner,message=winner + "Play Again?"):
-                    self.highlighted = BASE_HLIGHT_LIST
+                    self.reset_highlighted()
                     self.state.reset_game()
                 else:
                     self.running = False
@@ -105,11 +105,10 @@ class Game:
 
     def successful_move(self, move):
         self.run_move_checks(move)
-        self.state.move_piece(move)
-
+        self.state.move_piece(move, self.state.board)
 
         self.clicks = []
-        self.highlighted = BASE_HLIGHT_LIST
+        self.reset_highlighted()
         self.state.white_to_move = not self.state.white_to_move
 
         self.state.move_list.append(move.notation)
@@ -125,12 +124,11 @@ class Game:
             self.highlight_piece(self.clicks[1])
             self.clicks = [self.clicks[1]]
         else:
-            self.highlighted = BASE_HLIGHT_LIST
+            self.highlighted[0] = " "
             self.clicks = []
 
     def run_move_checks(self, move):
         if move.enpassant:
-            print('yeet')
             self.state.board[move.end_row + move.ep_direction][move.end_col] = " "
 
         if move.promotion:
@@ -151,6 +149,8 @@ class Game:
             self.state.board[move.end_row][move.end_col+old_rook_col] = " "
             self.state.board[move.end_row][move.end_col+new_rook_col] = move.piece_moved[0] + "R"
 
+    def reset_highlighted(self):
+        self.highlighted = [" ", " ", " "]
 
     def highlight_move(self, move):
         start_box = [move.start_col*SQ_SIZE, move.start_row*SQ_SIZE, SQ_SIZE, SQ_SIZE]
@@ -163,7 +163,7 @@ class Game:
         box = [col*SQ_SIZE, row*SQ_SIZE, SQ_SIZE, SQ_SIZE]
         self.highlighted[0] = ((box, SELECT_COLOR))
 
-    def check_highlighted_piece(self):
+    def check_highlighted(self):
         for i in self.highlighted:
             if i != " ":
                 pygame.draw.rect(self.screen, i[1], i[0], HIGHLIGHT_THICKNESS)
@@ -190,7 +190,7 @@ class Game:
 
         self.draw_board()
         self.draw_pieces()
-        self.check_highlighted_piece()
+        self.check_highlighted()
 
     def draw_board(self):
         colors = [LIGHT_COLOR, DARK_COLOR]
