@@ -86,7 +86,7 @@ class Game:
         start_square = self.clicks[0][0], self.clicks[0][1]
         end_square = self.clicks[1][0], self.clicks[1][1]
         move = Move(start_square, end_square, self.state)
-        if move.is_move_legal(self.moves): # if the move is legal
+        if move in self.moves: # if the move is legal
             self.successful_move(move)
             self.highlight_move(move)
             winner = self.state.check_winner()
