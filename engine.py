@@ -1,4 +1,5 @@
 import pygame
+from tkinter import messagebox
 
 DIM = 8
 GREEN = 0, 255, 0
@@ -13,7 +14,7 @@ class GameState:
         # initializes the game state with its
         # basic attributes (board, white_to_move,
         # move_list, etc.)
-        self.board = [[" " for i in range(8)] for i in range(8)]
+        self.board = [["  " for i in range(8)] for i in range(8)]
         self.white_to_move = True
         self.move_list = []
         self.funcs = {
@@ -34,52 +35,33 @@ class GameState:
     def create_start_pos(self):
         # creates the basic start position of any chess game
         self.board[0] = ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR']
-        self.board[1] = ['bP', 'bP', 'bP', ' ', 'bP', 'bP', 'bP', 'bP']
-        self.board[6] = ['wP', 'wP', 'wP', 'wP', ' ', 'wP', 'wP', 'wP']
+        self.board[1] = ['bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP']
+        self.board[2] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[3] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[4] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[5] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[6] = ['wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP']
         self.board[7] = ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']
 
-    def check_player_move(self, piece:str):
-        # checks if the piece that is given
-        # is allowed to be moved this turn
-        if piece[0] == 'w' and self.white_to_move == True:
-            return True
-        elif piece[0] == 'w' and self.white_to_move == False:
-            return False
-        elif piece[0] == 'b' and self.white_to_move == False:
-            return True
-        else:
-            return False
-
-    def check_winner(self):
-        # Checks if both kings are on the board
-        # if one of them is not there, the player
-        # who doesn't have a king loses
-        white_wins = True
-        black_wins = True
-        for r in range(DIM):
-            for c in range(DIM):
-                if self.board[r][c] == "wK":
-                    black_wins = False
-                elif self.board[r][c] == "bK":
-                    white_wins = False
-        if white_wins:
-            return "White Wins! "
-        elif black_wins:
-            return "Black Wins! "
-        else:
-            return None
+    def check_mates(self):
+        check = self.is_check()
+        opp_moves = self.all_legal_moves()
+        if opp_moves == [] and check:
+            return "checkmate"
+        elif opp_moves == [] and not check:
+            return "stalemate"
+        return None
 
     def move_piece(self, move, board=None):
         if board == None:
             board = self.board
-        board[move.start_row][move.start_col] = " "
+        board[move.start_row][move.start_col] = "  "
         board[move.end_row][move.end_col] = move.piece_moved
 
     def all_legal_moves(self):
         # finds all legal moves by first finding
         # all possible moves ... (WIP)
         all_moves = self.all_possible_moves()
-        check = self.check_check()
         legal_moves = []
         for move in all_moves:
             sim_board = self.create_simulated_board(move)
@@ -99,7 +81,7 @@ class GameState:
             for c in range(DIM):
                 square = board[r][c]
                 team = square[0]
-                if square != " ":
+                if square != "  ":
                     if (team == "w" and self.white_to_move and not flip_color) or (team == "b" and not self.white_to_move and not flip_color) or (self.white_to_move and team == "b" and flip_color) or (not self.white_to_move and team == "w" and flip_color):
                         piece = square[1]
                         
@@ -116,11 +98,12 @@ class GameState:
                 if board[r][c] == piece:
                     return r, c
 
-    def check_check(self):
-        king = "wK" if self.white_to_move else "bK"
+    def is_check(self):
+        king = self.get_team() + "K"
         king_pos = self.find_piece_pos(king)
-
-        return self.is_piece_attacked(king_pos[0], king_pos[1])
+        is_attacked = self.is_piece_attacked(king_pos[0], king_pos[1])
+        
+        return is_attacked
 
     def create_simulated_board(self, move):
         simulated = [i.copy() for i in self.board]
@@ -172,14 +155,14 @@ class GameState:
 
         # check if space in front is empty, adds it to the move
         # list if so
-        if board[end_square[0]][end_square[1]] == ' ':
+        if board[end_square[0]][end_square[1]] == '  ':
             moves.append(Move(start_square, end_square, self))
 
         # checks if the pawn has the right to move forward
         # 2 squares, if so adds that to move list
         if right_two_squares:
             two_squares_forward = (end_square[0]+direction, end_square[1])
-            if board[two_squares_forward[0]][two_squares_forward[1]] == " ":
+            if board[two_squares_forward[0]][two_squares_forward[1]] == "  ":
                 moves.append(Move(start_square, two_squares_forward, self))
 
         # checks if each diagonal square of the pawn
@@ -223,7 +206,7 @@ class GameState:
                 captured_piece = board[end_row][end_col]
                 if end_row < 0 or end_col < 0:
                     break
-                if captured_piece == " ":
+                if captured_piece == "  ":
                     moves.append(Move(start_square, end_square, self))
                 elif opposing_team in captured_piece:
                     moves.append(Move(start_square, end_square, self))
@@ -256,7 +239,7 @@ class GameState:
                 captured_piece = board[end_row][end_col]
                 if end_row < 0 or end_col < 0:
                     break
-                elif captured_piece == " ":
+                elif captured_piece == "  ":
                     moves.append(Move(start_square, end_square, self))
                 elif opposing_team in captured_piece:
                     moves.append(Move(start_square, end_square, self))
@@ -287,7 +270,7 @@ class GameState:
                 captured_piece = board[end_row][end_col]
                 if end_row < 0 or end_col < 0:
                     break
-                elif captured_piece == " ":
+                elif captured_piece == "  ":
                     moves.append(Move(start_square, end_square, self))
                 elif opposing_team in captured_piece:
                     moves.append(Move(start_square, end_square, self))
@@ -314,14 +297,13 @@ class GameState:
             end_square = end_row, end_col = row + direction[0], col + direction[1]
             if end_row < 0 or end_row > 7 or end_col < 0 or end_col > 7:
                 pass
-            elif board[end_row][end_col] == " " or opposing_team in self.board[end_row][end_col]:
+            elif board[end_row][end_col] == "  " or opposing_team in self.board[end_row][end_col]:
                 moves.append(Move(start_square, end_square, self))
 
         legal_castling = self.check_castling_rights(start_square)
         if legal_castling != []:
             for move in legal_castling:
                 moves.append(move)
-
 
     def get_knight_moves(self, row, col, moves, flip_color=False, board=None):
         # Gets all knight moves by checking if the directions 
@@ -343,7 +325,7 @@ class GameState:
             if end_row < 0 or end_row > 7 or end_col < 0 or end_col > 7:
                 pass
             else:
-                if board[end_row][end_col] == " ":
+                if board[end_row][end_col] == "  ":
                     moves.append(Move(start_square, end_square, self))
                 elif opposing_team in board[end_row][end_col]:
                     moves.append(Move(start_square, end_square, self))
@@ -404,15 +386,15 @@ class GameState:
             return []
 
         if self.board[starting_row][0] == rook: # check if queenside castling is legal
-            if self.board[starting_row][3] == " " and self.board[starting_row][2] == " ":
+            if self.board[starting_row][3] == "  " and self.board[starting_row][2] == "  ":
                 legal_castling_moves.append(Move(king_pos, (row, col-2), self))
         if self.board[starting_row][7] == rook: # check if kingside castling is legal
-            if self.board[starting_row][5] == " " and self.board[starting_row][6] == " ":
+            if self.board[starting_row][5] == "  " and self.board[starting_row][6] == "  ":
                 legal_castling_moves.append(Move(king_pos, (row, col+2), self))
 
         return legal_castling_moves
 
-    def get_team(self, flip_color, opposing=False):
+    def get_team(self, flip_color=False, opposing=False):
         if opposing:
             black = "w"
             white = "b"
@@ -493,7 +475,7 @@ class Move:
         elif self.piece_moved[1] == 'P': 
             notated_piece_moved = ''
             capture_str = ''
-        elif self.piece_captured != ' ':
+        elif self.piece_captured != '  ':
             notated_piece_moved = self.piece_moved[1]
             capture_str = 'x'
         else:
@@ -533,11 +515,10 @@ class Move:
             moves_ep = w_pawn_moves_that_allow_ep
             opposite_pawn = "wP"
         if self.state.move_list[-1] in moves_ep:
-            if self.piece_captured == " ":
+            if self.piece_captured == "  " and self.piece_moved[1] == "P":
                 enpassanted_piece = self.board[self.end_row+direction][self.end_col]
                 if enpassanted_piece == opposite_pawn:
-                    if self.piece_moved[1] == "P":
-                        return (True, direction)
+                    return (True, direction)
                         
         return (False, False)
 

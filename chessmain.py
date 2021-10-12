@@ -10,7 +10,7 @@ Tk().wm_withdraw() # to hide the main window of tkinter
 FPS = 30
 DIM = 8 # 8x8 board
 WHITE = 255, 255, 255
-BASE_HLIGHT_LIST = [" ", " ", " "]
+BASE_HLIGHT_LIST = ["  ", "  ", "  "]
 
 path = os.path.abspath(os.getcwd())
 
@@ -36,7 +36,7 @@ class Game:
         self.screen = pygame.display.set_mode(size)
         self.clock = pygame.time.Clock()
         self.running = True
-        self.highlighted = [" ", " ", " "]
+        self.highlighted = ["  ", "  ", "  "]
         self.buttons = None
 
         self.state = GameState()
@@ -64,10 +64,11 @@ class Game:
                 pos = pygame.mouse.get_pos()
                 col = (pos[0] // SQ_SIZE)
                 row = (pos[1] // SQ_SIZE)
+
                 if self.square_selected == (row, col): # If same square is selected twice
                     self.square_selected = ()
                     self.clicks = []
-                    self.highlighted[0] = " "
+                    self.highlighted[0] = "  "
                 else:
                     self.square_selected = row, col
                     self.clicks.append(self.square_selected)
@@ -75,7 +76,8 @@ class Game:
                         self.play_move()
                     else: # First click, check if the piece is of the correct color, if not clears the click log
                         piece = self.state.board[self.clicks[0][0]][self.clicks[0][1]]
-                        if self.state.check_player_move(piece):
+                        team = piece[0]
+                        if (team == 'w' and self.state.white_to_move) or (team == 'b' and not self.state.white_to_move):
                             pos = self.clicks[0]
                             self.highlight_piece(pos)
                             self.moves = self.state.all_legal_moves()
@@ -87,29 +89,41 @@ class Game:
         end_square = self.clicks[1][0], self.clicks[1][1]
         move = Move(start_square, end_square, self.state)
         if move in self.moves: # if the move is legal
-            self.successful_move(move)
             self.highlight_move(move)
-            winner = self.state.check_winner()
-            if winner != None:
-                if not self.state.white_to_move:
-                    pygame.display.set_icon(self.icon_w)
-                else:
-                    pygame.display.set_icon(self.icon_b)
-                if messagebox.askyesno(title=winner,message=winner + "Play Again?"):
-                    self.reset_highlighted()
-                    self.state.reset_game()
-                else:
-                    self.running = False
+            self.successful_move(move)
         else: # otherwise, the move is illegal
             self.unsuccesful_move()
 
+    def wins(self):
+        if self.state.white_to_move:
+            pygame.display.set_icon(self.icon_b)
+            winner = "Black Wins! "
+        else:
+            pygame.display.set_icon(self.icon_w)
+            winner = "White Wins! "
+        if messagebox.askyesno(title=winner,message=winner + "Play Again?"):
+            self.state.reset_game()
+        else:
+            exit()
+
+    def draws(self):
+        if messagebox.askyesno(title="Draw!", message="It's a Draw! Play Again?"):
+            self.state.reset_game()
+        else:
+            exit()
+
     def successful_move(self, move):
-        self.run_move_checks(move)
         self.state.move_piece(move, self.state.board)
+        self.run_move_checks(move)
 
         self.clicks = []
-        self.reset_highlighted()
         self.state.white_to_move = not self.state.white_to_move
+
+        mate = self.state.check_mates()
+        if mate == "checkmate":
+            self.wins()
+        elif mate == "stalemate":
+            self.draws()
 
         self.state.move_list.append(move.notation)
         print(self.state.move_list[-1])
@@ -124,12 +138,12 @@ class Game:
             self.highlight_piece(self.clicks[1])
             self.clicks = [self.clicks[1]]
         else:
-            self.highlighted[0] = " "
+            self.highlighted[0] = "  "
             self.clicks = []
 
     def run_move_checks(self, move):
         if move.enpassant:
-            self.state.board[move.end_row + move.ep_direction][move.end_col] = " "
+            self.state.board[move.end_row + move.ep_direction][move.end_col] = "  "
 
         if move.promotion:
             self.promote(move.end_square)
@@ -146,11 +160,11 @@ class Game:
                 new_rook_col = 1
                 old_rook_col = -2
 
-            self.state.board[move.end_row][move.end_col+old_rook_col] = " "
+            self.state.board[move.end_row][move.end_col+old_rook_col] = "  "
             self.state.board[move.end_row][move.end_col+new_rook_col] = move.piece_moved[0] + "R"
 
     def reset_highlighted(self):
-        self.highlighted = [" ", " ", " "]
+        self.highlighted = ["  ", "  ", "  "]
 
     def highlight_move(self, move):
         start_box = [move.start_col*SQ_SIZE, move.start_row*SQ_SIZE, SQ_SIZE, SQ_SIZE]
@@ -165,7 +179,7 @@ class Game:
 
     def check_highlighted(self):
         for i in self.highlighted:
-            if i != " ":
+            if i != "  ":
                 pygame.draw.rect(self.screen, i[1], i[0], HIGHLIGHT_THICKNESS)
 
     def load_images(self):
@@ -204,7 +218,7 @@ class Game:
         for r in range(DIM):
             for c in range(DIM):
                 piece = self.state.board[r][c]
-                if piece != ' ':
+                if piece != "  ":
                     self.screen.blit(self.images[piece], (SQ_SIZE*c, SQ_SIZE*r))
 
 def main():
