@@ -156,14 +156,14 @@ class GameState:
         # check if space in front is empty, adds it to the move
         # list if so
         if board[end_square[0]][end_square[1]] == '  ':
-            moves.append(Move(start_square, end_square, self))
+            moves.append(Move(start_square, end_square, self.board, self.move_list))
 
         # checks if the pawn has the right to move forward
         # 2 squares, if so adds that to move list
         if right_two_squares:
             two_squares_forward = (end_square[0]+direction, end_square[1])
             if board[two_squares_forward[0]][two_squares_forward[1]] == "  ":
-                moves.append(Move(start_square, two_squares_forward, self))
+                moves.append(Move(start_square, two_squares_forward, self.board, self.move_list))
 
         # checks if each diagonal square of the pawn
         # is occupied by an enemy piece, if so adds
@@ -172,14 +172,14 @@ class GameState:
             if DIM <= diag_square[1] or 0 > diag_square[1]:
                 continue
             if opposing_team in board[diag_square[0]][diag_square[1]]:
-                moves.append(Move(start_square, diag_square, self))
+                moves.append(Move(start_square, diag_square, self.board, self.move_list))
         
         # checks if en passant is legal, if so adds to move
         # list
         ep_bool, ep_direction = self.check_enpassant(start_square)
         if ep_bool:
             ep_end_square = (end_square[0], end_square[1] + ep_direction)
-            moves.append(Move(start_square, ep_end_square, self))
+            moves.append(Move(start_square, ep_end_square, self.board, self.move_list))
 
     def get_rook_moves(self, row:int, col:int, moves:list, flip_color:bool=False, board:list=None):
         # Gets rook moves by iteration over
@@ -207,9 +207,9 @@ class GameState:
                 if end_row < 0 or end_col < 0:
                     break
                 if captured_piece == "  ":
-                    moves.append(Move(start_square, end_square, self))
+                    moves.append(Move(start_square, end_square, self.board, self.move_list))
                 elif opposing_team in captured_piece:
-                    moves.append(Move(start_square, end_square, self))
+                    moves.append(Move(start_square, end_square, self.board, self.move_list))
                     break
                 else:
                     break
@@ -240,9 +240,9 @@ class GameState:
                 if end_row < 0 or end_col < 0:
                     break
                 elif captured_piece == "  ":
-                    moves.append(Move(start_square, end_square, self))
+                    moves.append(Move(start_square, end_square, self.board, self.move_list))
                 elif opposing_team in captured_piece:
-                    moves.append(Move(start_square, end_square, self))
+                    moves.append(Move(start_square, end_square, self.board, self.move_list))
                     break
                 else:
                     break
@@ -271,9 +271,9 @@ class GameState:
                 if end_row < 0 or end_col < 0:
                     break
                 elif captured_piece == "  ":
-                    moves.append(Move(start_square, end_square, self))
+                    moves.append(Move(start_square, end_square, self.board, self.move_list))
                 elif opposing_team in captured_piece:
-                    moves.append(Move(start_square, end_square, self))
+                    moves.append(Move(start_square, end_square, self.board, self.move_list))
                     break
                 else:
                     break
@@ -298,7 +298,7 @@ class GameState:
             if end_row < 0 or end_row > 7 or end_col < 0 or end_col > 7:
                 pass
             elif board[end_row][end_col] == "  " or opposing_team in self.board[end_row][end_col]:
-                moves.append(Move(start_square, end_square, self))
+                moves.append(Move(start_square, end_square, self.board, self.move_list))
 
         legal_castling = self.check_castling_rights(start_square)
         if legal_castling != []:
@@ -326,9 +326,9 @@ class GameState:
                 pass
             else:
                 if board[end_row][end_col] == "  ":
-                    moves.append(Move(start_square, end_square, self))
+                    moves.append(Move(start_square, end_square, self.board, self.move_list))
                 elif opposing_team in board[end_row][end_col]:
-                    moves.append(Move(start_square, end_square, self))
+                    moves.append(Move(start_square, end_square, self.board, self.move_list))
     
     def check_enpassant(self, pos:tuple[int, int]) -> tuple:
         # checks if en passant is legal by checking if
