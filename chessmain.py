@@ -1,22 +1,28 @@
+from tkinter.constants import Y
 import pygame
+import pygame.freetype
 import json  
 import os
-from engine import *
+import move as m
+import engine as eg
 from tkinter import Tk
 from tkinter import messagebox
-
-Tk().wm_withdraw() # to hide the main window of tkinter
-
-FPS = 30
-DIM = 8 # 8x8 board
-WHITE = 255, 255, 255
-BASE_HLIGHT_LIST = ["  ", "  ", "  "]
 
 path = os.path.abspath(os.getcwd())
 
 with open(os.path.join(path, "config.json")) as file:
     config = json.load(file)
     file.close()
+
+Tk().wm_withdraw() # to hide the main window of tkinter
+
+FPS = 30
+DIM = 8 # 8x8 board
+WHITE = 255, 255, 255
+BLACK = 0, 0, 0
+BASE_HLIGHT_LIST = ["  ", "  ", "  "]
+
+BG_COLOR = BLACK
 
 LIGHT_COLOR = config["light_square_color"]
 DARK_COLOR = config["dark_square_color"]
@@ -26,7 +32,12 @@ SELECT_COLOR = config["select_color"]
 HIGHLIGHT_THICKNESS = config["highlight_thickness"]
 
 size = WIDTH, HEIGHT 
-SQ_SIZE = int(WIDTH / DIM) # 768/8 = 96
+BOARD_SIZE = BOARD_WIDTH, BOARD_HEIGHT = WIDTH-WIDTH/7, HEIGHT-HEIGHT/7
+SQ_SIZE = int(BOARD_WIDTH / DIM)
+
+Y_OF_PROMOTION_TXT = 30
+PROMOTION_TXT_COLOR = WHITE
+TXT_SIZE = 25
 
 class Game:
 
@@ -38,8 +49,10 @@ class Game:
         self.running = True
         self.highlighted = ["  ", "  ", "  "]
         self.buttons = None
+        self.font = pygame.freetype.SysFont(None, TXT_SIZE)
+        self.display_promotion = False
 
-        self.state = GameState()
+        self.state = eg.GameState()
         self.pieces = ['wP', 'bP', 'wK', 'bK', 'wQ', 'bQ', 'wB', 'bB', 'wN', 'bN', 'wR', 'bR']
 
     def new(self):
@@ -52,14 +65,17 @@ class Game:
     def run(self):
         while self.running:
             self.clock.tick(FPS)
-            self.events()
-            self.draw()
-            pygame.display.flip()
+            self.loop()
+    
+    def loop(self):
+        self.draw()
+        self.events()
+        pygame.display.flip()
 
     def events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.running = False
+                exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
                 col = (pos[0] // SQ_SIZE)
@@ -84,17 +100,49 @@ class Game:
                         else:
                             self.clicks = []
 
+    def wait_for_promotion(self) -> str:
+        while True:
+            self.display_promotion = True
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    exit()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_n or event.key == pygame.K_k:
+                        return "N"
+                    elif event.key == pygame.K_r:
+                        return "R"
+                    elif event.key == pygame.K_q:
+                        return "Q"
+                    elif event.key == pygame.K_b:
+                        return "B"
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    pos = pygame.mouse.get_pos()
+                    x, y = pos
+                    if x > BOARD_WIDTH:
+                        print(y)
+                        if y > 0 and y < Y_OF_PROMOTION_TXT+TXT_SIZE:
+                            return "Q"
+                        elif y > Y_OF_PROMOTION_TXT*1 and y < Y_OF_PROMOTION_TXT*2+TXT_SIZE:
+                            return "N"
+                        elif y > Y_OF_PROMOTION_TXT*2 and y < Y_OF_PROMOTION_TXT*3+TXT_SIZE:
+                            return "R"
+                        elif y > Y_OF_PROMOTION_TXT*3 and y < Y_OF_PROMOTION_TXT*4+TXT_SIZE:
+                            return "B"
+            self.draw()
+            pygame.display.flip()
+            
+
     def play_move(self):
         start_square = self.clicks[0][0], self.clicks[0][1]
         end_square = self.clicks[1][0], self.clicks[1][1]
-        move = Move(start_square, end_square, self.state)
+        move = m.Move(start_square, end_square, self.state.board, self.state.move_list)
         if move in self.moves: # if the move is legal
             self.highlight_move(move)
             self.successful_move(move)
         else: # otherwise, the move is illegal
             self.unsuccesful_move()
 
-    def wins(self):
+    def game_wins(self):
         if self.state.white_to_move:
             pygame.display.set_icon(self.icon_b)
             winner = "Black Wins! "
@@ -106,13 +154,13 @@ class Game:
         else:
             exit()
 
-    def draws(self):
+    def game_draws(self):
         if messagebox.askyesno(title="Draw!", message="It's a Draw! Play Again?"):
             self.state.reset_game()
         else:
             exit()
 
-    def successful_move(self, move):
+    def successful_move(self, move:m.Move):
         self.state.move_piece(move, self.state.board)
         self.run_move_checks(move)
 
@@ -121,9 +169,9 @@ class Game:
 
         mate = self.state.check_mates()
         if mate == "checkmate":
-            self.wins()
+            self.game_wins()
         elif mate == "stalemate":
-            self.draws()
+            self.game_draws()
 
         self.state.move_list.append(move.notation)
         print(self.state.move_list[-1])
@@ -146,7 +194,9 @@ class Game:
             self.state.board[move.end_row + move.ep_direction][move.end_col] = "  "
 
         if move.promotion:
-            self.promote(move.end_square)
+            promote_to = self.wait_for_promotion()
+            self.promote(move.end_square, promote_to)
+            self.display_promotion = False
 
         if move.castling:
             # if kingside castling, the rook that moves is -1 columns
@@ -194,17 +244,23 @@ class Game:
                     (SQ_SIZE, SQ_SIZE)
             )
 
-    def promote(self, pos:tuple[int, int]):
+    def promote(self, pos:tuple[int, int], to_promote):
         piece = self.state.board[pos[0]][pos[1]]
-        to_promote = "Q"
         self.state.board[pos[0]][pos[1]] = piece[0] + to_promote
 
     def draw(self):
-        self.screen.fill(WHITE)
-
+        self.screen.fill(BLACK)
         self.draw_board()
         self.draw_pieces()
         self.check_highlighted()
+        if self.display_promotion == True:
+            self.draw_promotion_text()
+
+    def draw_promotion_text(self):
+        self.font.render_to(self.screen,(BOARD_WIDTH+10, Y_OF_PROMOTION_TXT*1), "Queen", (BLACK))
+        self.font.render_to(self.screen,(BOARD_WIDTH+10, Y_OF_PROMOTION_TXT*2), "Knight", (BLACK))
+        self.font.render_to(self.screen,(BOARD_WIDTH+10, Y_OF_PROMOTION_TXT*3), "Rook", (BLACK))
+        self.font.render_to(self.screen,(BOARD_WIDTH+10, Y_OF_PROMOTION_TXT*4), "Bishop", (BLACK))
 
     def draw_board(self):
         colors = [LIGHT_COLOR, DARK_COLOR]

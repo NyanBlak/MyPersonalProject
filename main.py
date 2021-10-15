@@ -1,5 +1,4 @@
 import chessmain as chess
-import engine as engine
 import os
 import json
 

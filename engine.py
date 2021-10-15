@@ -1,5 +1,4 @@
-import pygame
-from tkinter import messagebox
+from move import Move
 
 DIM = 8
 GREEN = 0, 255, 0
@@ -7,6 +6,7 @@ RED = 255, 0, 0
 
 w_pawn_moves_that_allow_ep = ["a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4"]
 b_pawn_moves_that_allow_ep = ["a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5"]
+
 
 class GameState:
 
@@ -43,22 +43,21 @@ class GameState:
         self.board[6] = ['wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP']
         self.board[7] = ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']
 
-    def check_mates(self):
+    def check_mates(self) -> str:
         check = self.is_check()
         opp_moves = self.all_legal_moves()
         if opp_moves == [] and check:
             return "checkmate"
         elif opp_moves == [] and not check:
             return "stalemate"
-        return None
 
-    def move_piece(self, move, board=None):
+    def move_piece(self, move:Move, board:list=None):
         if board == None:
             board = self.board
         board[move.start_row][move.start_col] = "  "
         board[move.end_row][move.end_col] = move.piece_moved
 
-    def all_legal_moves(self):
+    def all_legal_moves(self) -> list:
         # finds all legal moves by first finding
         # all possible moves ... (WIP)
         all_moves = self.all_possible_moves()
@@ -67,12 +66,12 @@ class GameState:
             sim_board = self.create_simulated_board(move)
             king = "wK" if self.white_to_move else "bK"
             king_pos = self.find_piece_pos(king, sim_board)
-            unsafe_move = self.is_piece_attacked(king_pos[0], king_pos[1], sim_board)
+            unsafe_move = self.is_piece_attacked(king_pos, sim_board)
             if not unsafe_move:
                 legal_moves.append(move)
         return legal_moves
 
-    def all_possible_moves(self, board=None, flip_color=False):
+    def all_possible_moves(self, board:list = None, flip_color:bool = False) -> list:
         # finds all possible moves with each
         # get_[piece]_moves function
         moves = []
@@ -90,7 +89,7 @@ class GameState:
 
         return moves
 
-    def find_piece_pos(self, piece, board=None):
+    def find_piece_pos(self, piece:str, board:list = None) -> tuple:
         if board == None:
             board = self.board
         for r in range(DIM):
@@ -98,28 +97,29 @@ class GameState:
                 if board[r][c] == piece:
                     return r, c
 
-    def is_check(self):
+    def is_check(self) -> bool:
         king = self.get_team() + "K"
         king_pos = self.find_piece_pos(king)
-        is_attacked = self.is_piece_attacked(king_pos[0], king_pos[1])
+        is_attacked = self.is_piece_attacked(king_pos)
         
         return is_attacked
 
-    def create_simulated_board(self, move):
+    def create_simulated_board(self, move:Move) -> list:
         simulated = [i.copy() for i in self.board]
         self.move_piece(move, simulated)
         return simulated
 
-    def is_piece_attacked(self, row, col, board=None):
+    def is_piece_attacked(self, pos:tuple[int, int], board:list=None) -> bool:
         if board == None:
             board = self.board
+        row, col = pos
         opp_moves = self.all_possible_moves(board, True)
         for opp_move in opp_moves:
             if opp_move.end_row == row and opp_move.end_col == col:
                 return True
         return False
 
-    def get_pawn_moves(self, row, col, moves, flip_color=False, board=None):
+    def get_pawn_moves(self, row:int, col:int, moves:list, flip_color:bool=False, board:list=None):
         # gets all pawn moves by first getting
         # the direction that pawns go by
         # seeing who's turn it is, if it's
@@ -170,7 +170,7 @@ class GameState:
         # to move list
         for diag_square in diag_squares:
             if DIM <= diag_square[1] or 0 > diag_square[1]:
-                break
+                continue
             if opposing_team in board[diag_square[0]][diag_square[1]]:
                 moves.append(Move(start_square, diag_square, self))
         
@@ -181,7 +181,7 @@ class GameState:
             ep_end_square = (end_square[0], end_square[1] + ep_direction)
             moves.append(Move(start_square, ep_end_square, self))
 
-    def get_rook_moves(self, row, col, moves, flip_color=False, board=None):
+    def get_rook_moves(self, row:int, col:int, moves:list, flip_color:bool=False, board:list=None):
         # Gets rook moves by iteration over
         # directions list (horizontal direciton) 
         # and continuing
@@ -214,7 +214,7 @@ class GameState:
                 else:
                     break
 
-    def get_bishop_moves(self, row, col, moves, flip_color=False, board=None):
+    def get_bishop_moves(self, row:int, col:int, moves:list, flip_color:bool=False, board:list=None):
         # Gets bishop moves by iteration over
         # directions list (diagonal directions)
         # and continuing
@@ -247,7 +247,7 @@ class GameState:
                 else:
                     break
 
-    def get_queen_moves(self, row, col, moves, flip_color=False, board=None):
+    def get_queen_moves(self, row:int, col:int, moves:list, flip_color:bool=False, board:list=None):
         # Gets queen moves by combining logic from
         # bishop and queen in to one function
         board = self.board if board == None else board
@@ -278,7 +278,7 @@ class GameState:
                 else:
                     break
 
-    def get_king_moves(self, row, col, moves, flip_color=False, board=None):
+    def get_king_moves(self, row:int, col:int, moves:list, flip_color:bool=False, board:list=None):
         # Gets all king moves by checking if the
         # from the start square are either occupied
         # by nothing or by an opposing piece.
@@ -305,7 +305,7 @@ class GameState:
             for move in legal_castling:
                 moves.append(move)
 
-    def get_knight_moves(self, row, col, moves, flip_color=False, board=None):
+    def get_knight_moves(self, row:int, col:int, moves:list, flip_color:bool=False, board:list=None):
         # Gets all knight moves by checking if the directions 
         # from the start square are either occupied by nothing
         # or by an opposing piece
@@ -330,7 +330,7 @@ class GameState:
                 elif opposing_team in board[end_row][end_col]:
                     moves.append(Move(start_square, end_square, self))
     
-    def check_enpassant(self, pos:tuple[int, int]):
+    def check_enpassant(self, pos:tuple[int, int]) -> tuple:
         # checks if en passant is legal by checking if
         # the last move played was a pawn up two squares
         # and if there is a pawn on the correct row
@@ -341,7 +341,6 @@ class GameState:
         full_piece = self.board[pos[0]][pos[1]]
         row, col = pos
         team = full_piece[0]
-        piece = full_piece[1]
         if team == 'w':
             moves_ep = b_pawn_moves_that_allow_ep
             previously_moved_numvar = -1
@@ -361,7 +360,7 @@ class GameState:
                         return (True, 1)
         return (False, False)
 
-    def check_castling_rights(self, king_pos:tuple[int, int]):
+    def check_castling_rights(self, king_pos:tuple[int, int]) -> list:
         # checks if castling is legal on either side
         # by checking if the king has moved from its
         # starting square and if the rooks have
@@ -409,124 +408,3 @@ class GameState:
             return white
         else:
             return black
-
-class Move:
-
-    # Dictionaries that translate the grid notation
-    # (starting in the top right corner with 0, 0 and going
-    # right and down in +1 increments) to rank-file notation
-
-    # ranks are rows which are from whites perspective starting
-    # from bottom to top numbered 1, 2, 3... up to 8
-
-    # files are the columns also from whites perspective starting
-    # from left to right labeled a, b, c, d... up till h
-
-    # Squares in rank-file notation are labeled by the file
-    # letter then the rank number (ex: e4, d8, a3, h2)
-    row_to_rank = {7: "1", 6: "2", 5: "3", 4: "4", 3: "5", 2: "6", 1: "7", 0: "8"}
-    col_to_file = {0: "a", 1: "b", 2: "c", 3: "d", 4: "e", 5: "f", 6: "g", 7: "h"}
-
-    def __init__(self, start_square:tuple[int, int], end_square:tuple[int,int], state):
-        # initalizes the move with its required attributes
-        # (board, start_square(row, col), end_square(row, col),
-        # the piece that moved, the piece/space that is being
-        # "captured", the pieces notation, etc.)
-        self.state = state
-        self.board = self.state.board
-        self.start_square = start_square
-        self.start_row = start_square[0]
-        self.start_col = start_square[1]
-        self.end_square = end_square
-        self.end_row = end_square[0]
-        self.end_col = end_square[1]
-
-        self.piece_moved = self.board[self.start_row][self.start_col]
-        self.piece_captured = self.board[self.end_row][self.end_col]
-
-        self.castling = self.is_move_castling()
-        self.enpassant, self.ep_direction = self.is_move_enpassant()
-        self.promotion = self.is_move_promotion()
-        self.notation = self.get_algebraic_notation()
-
-    def __eq__(self, other):
-        return self.__dict__ == other.__dict__
-
-    def __str__(self):
-        return self.notation
-
-    def get_algebraic_notation(self):
-        # gets the algebraic notation of the move
-        # ex: pawn to e4 is e4, kingside castles is O-O,
-        # knight to c4 is Nc4, queen to h7 is Qh7, etc.
-        originating_file = Move.col_to_file[self.start_col]
-        file = Move.col_to_file[self.end_col]
-        rank = Move.row_to_rank[self.end_row]
-
-        if self.piece_moved[1] == 'K' and self.castling:
-            if self.end_col == 6:
-                return "O-O"
-            else:
-                return "O-O-O"
-
-        if self.piece_moved[1] == 'P' and originating_file != file: 
-            notated_piece_moved = originating_file
-            capture_str = 'x'
-        elif self.piece_moved[1] == 'P': 
-            notated_piece_moved = ''
-            capture_str = ''
-        elif self.piece_captured != '  ':
-            notated_piece_moved = self.piece_moved[1]
-            capture_str = 'x'
-        else:
-            notated_piece_moved = self.piece_moved[1]
-            capture_str = ''
-
-        return f"{notated_piece_moved}{capture_str}{file}{rank}"
-    
-    def is_move_promotion(self):
-        # checks if a pawn has reached the 8th or 1st rank
-        # will promote it to a queen at the moment, this must
-        # be changed to allow for under promotion to at least
-        # a knight, however bishops and rooks should also
-        # be included
-        for w_square in self.board[0]: # for square in 8th rank
-            for b_square in self.board[7]: # for square in 1st rank
-                if "P" in w_square or "P" in b_square:
-                    return True
-
-    def is_move_enpassant(self):
-        if len(self.state.move_list) < 2:
-            return (False, False)
-        # If it is whites turn, then the move that allow
-        # en passant would come from black, and that would include
-        # any pawn move that goes two spaces forward
-
-        # direction is the the direction that the pawn moves
-        # in rows.
-
-        # opposite pawn is the pawn of the opposite color 
-        if self.piece_moved[0] == 'w':
-            direction = 1
-            moves_ep = b_pawn_moves_that_allow_ep
-            opposite_pawn = "bP"
-        else:
-            direction = -1
-            moves_ep = w_pawn_moves_that_allow_ep
-            opposite_pawn = "wP"
-        if self.state.move_list[-1] in moves_ep:
-            if self.piece_captured == "  " and self.piece_moved[1] == "P":
-                enpassanted_piece = self.board[self.end_row+direction][self.end_col]
-                if enpassanted_piece == opposite_pawn:
-                    return (True, direction)
-                        
-        return (False, False)
-
-    def is_move_castling(self):
-        # Checks if the current move is castling, by
-        # checking if the piece moved is a King and
-        # if the King moved 2 columns over in this move
-        if "K" in self.piece_moved:
-            if abs(self.start_col - self.end_col) == 2:
-                return True
-        return False
