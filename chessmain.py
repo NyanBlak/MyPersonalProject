@@ -22,7 +22,7 @@ WHITE = 255, 255, 255
 BLACK = 0, 0, 0
 BASE_HLIGHT_LIST = ["  ", "  ", "  "]
 
-BG_COLOR = BLACK
+BG_COLOR = WHITE
 
 LIGHT_COLOR = config["light_square_color"]
 DARK_COLOR = config["dark_square_color"]
@@ -36,7 +36,7 @@ BOARD_SIZE = BOARD_WIDTH, BOARD_HEIGHT = WIDTH-WIDTH/7, HEIGHT-HEIGHT/7
 SQ_SIZE = int(BOARD_WIDTH / DIM)
 
 Y_OF_PROMOTION_TXT = 30
-PROMOTION_TXT_COLOR = WHITE
+PROMOTION_TXT_COLOR = BLACK
 TXT_SIZE = 25
 
 class Game:
@@ -249,7 +249,7 @@ class Game:
         self.state.board[pos[0]][pos[1]] = piece[0] + to_promote
 
     def draw(self):
-        self.screen.fill(BLACK)
+        self.screen.fill(BG_COLOR)
         self.draw_board()
         self.draw_pieces()
         self.check_highlighted()
