@@ -386,10 +386,10 @@ class GameState:
 
         if self.board[starting_row][0] == rook: # check if queenside castling is legal
             if self.board[starting_row][3] == "  " and self.board[starting_row][2] == "  ":
-                legal_castling_moves.append(Move(king_pos, (row, col-2), self))
+                legal_castling_moves.append(Move(king_pos, (row, col-2), self.board, self.move_list))
         if self.board[starting_row][7] == rook: # check if kingside castling is legal
             if self.board[starting_row][5] == "  " and self.board[starting_row][6] == "  ":
-                legal_castling_moves.append(Move(king_pos, (row, col+2), self))
+                legal_castling_moves.append(Move(king_pos, (row, col+2), self.board, self.move_list))
 
         return legal_castling_moves
 

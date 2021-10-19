@@ -1,9 +1,10 @@
 {
-	"resolution" : 982,
+	"resolution" : [1600, 800],
 	"light_square_color" : [239, 239, 239],
 	"dark_square_color" : [136, 121, 181],
 	"theme_set" : "BasicPieces",
 	"select_color" : [255, 0, 0],
 	"move_highlight_color" : [0, 0, 255],
-	"highlight_thickness": 4
+	"highlight_thickness": 4,
+	"title_style" : "STYLE_OBLIQUE"
 }
