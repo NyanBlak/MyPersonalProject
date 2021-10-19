@@ -55,18 +55,18 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
 
+    def new(self):
         self.font = pygame.freetype.SysFont(None, TXT_SIZE)
         self.move_list_font = pygame.freetype.SysFont(None, 20)
-
+        self.square_selected = ()
+        self.clicks = []
         self.highlighted = ["  ", "  ", "  "]
         self.buttons = None
         self.display_promotion = False
         self.state = eg.GameState()
         self.pieces = ['wP', 'bP', 'wK', 'bK', 'wQ', 'bQ', 'wB', 'bB', 'wN', 'bN', 'wR', 'bR']
+        self.min_row, self.max_row = 1, 20
 
-    def new(self):
-        self.square_selected = ()
-        self.clicks = []
         self.load_images()
         self.state.create_start_pos()
         self.run()
@@ -82,6 +82,15 @@ class Game:
         pygame.display.flip()
 
     def events(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_DOWN]:
+            if self.max_row < len(self.state.move_list)/2:
+                self.min_row += 1
+                self.max_row += 1
+        if keys[pygame.K_UP]:
+            if self.min_row > 1:
+                self.min_row -= 1
+                self.max_row -= 1
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit()
@@ -153,7 +162,6 @@ class Game:
         if move in self.moves: # if the move is legal
             self.highlight_move(move)
             self.successful_move(move)
-            print(self.state.move_list)
         else: # otherwise, the move is illegal
             self.unsuccesful_move()
 
@@ -179,8 +187,15 @@ class Game:
         self.state.move_piece(move, self.state.board)
         self.run_move_checks(move)
 
+        if self.state.white_to_move and len(self.state.move_list)/2>20:
+            self.min_row += 1
+            self.max_row += 1
+
         self.clicks = []
         self.state.white_to_move = not self.state.white_to_move
+
+        if self.state.is_check():
+            move.notation = move.notation + "+"
 
         mate = self.state.check_mates()
         if mate == "checkmate":
@@ -278,15 +293,11 @@ class Game:
             i += 1
             col = 60 if i % 2 == 0 else 0
             row = int(math.ceil(i/2))
+            display_row = row - (self.max_row - 20)
             if i % 2 == 1:
                 move = str(row) + "." + move
-            if row > 20:
-                inc = 1
-                if row > 40:
-                    inc = 2
-                col += 120 * inc
-                row -= 20 * inc
-            self.move_list_font.render_to(self.screen, (BOARD_WIDTH+(col*2)+BEZEL+60, row*30+BEZEL), move, MOVE_LIST_COLOR)
+            if row <= self.max_row and row >= self.min_row:
+                self.move_list_font.render_to(self.screen, (BOARD_WIDTH+(col*2)+BEZEL+60, display_row*30+BEZEL), move, MOVE_LIST_COLOR)
 
     def draw_promotion_text(self):
         self.promotion_rects = []

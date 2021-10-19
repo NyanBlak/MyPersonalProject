@@ -1,4 +1,5 @@
 from move import Move
+import random
 
 DIM = 8
 GREEN = 0, 255, 0
@@ -6,7 +7,6 @@ RED = 255, 0, 0
 
 w_pawn_moves_that_allow_ep = ["a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4"]
 b_pawn_moves_that_allow_ep = ["a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5"]
-
 
 class GameState:
 
@@ -66,7 +66,7 @@ class GameState:
             sim_board = self.create_simulated_board(move)
             king = "wK" if self.white_to_move else "bK"
             king_pos = self.find_piece_pos(king, sim_board)
-            unsafe_move = self.is_piece_attacked(king_pos, sim_board)
+            unsafe_move = self.is_square_attacked(king_pos, sim_board)
             if not unsafe_move:
                 legal_moves.append(move)
         return legal_moves
@@ -100,7 +100,7 @@ class GameState:
     def is_check(self) -> bool:
         king = self.get_team() + "K"
         king_pos = self.find_piece_pos(king)
-        is_attacked = self.is_piece_attacked(king_pos)
+        is_attacked = self.is_square_attacked(king_pos)
         
         return is_attacked
 
@@ -109,7 +109,7 @@ class GameState:
         self.move_piece(move, simulated)
         return simulated
 
-    def is_piece_attacked(self, pos:tuple[int, int], board:list=None) -> bool:
+    def is_square_attacked(self, pos:tuple[int, int], board:list=None) -> bool:
         if board == None:
             board = self.board
         row, col = pos
@@ -338,26 +338,36 @@ class GameState:
         if len(self.move_list) == 0:
             return (False, False)
         last_move = self.move_list[-1]
-        full_piece = self.board[pos[0]][pos[1]]
+        team = self.board[pos[0]][pos[1]][0]
         row, col = pos
-        team = full_piece[0]
+
         if team == 'w':
             moves_ep = b_pawn_moves_that_allow_ep
-            previously_moved_numvar = -1
             en_passant_row = 3
         else:
             moves_ep = w_pawn_moves_that_allow_ep
-            previously_moved_numvar = 1
             en_passant_row = 4
+
         if last_move in moves_ep:
-            previously_moved = last_move[0] + str(int(last_move[1])+previously_moved_numvar) # check if the pawn has moved before
-            if not previously_moved in self.move_list:
-                if row == en_passant_row:
-                    other_pawn_col = [k for k, v in Move.col_to_file.items() if v == last_move[0]][0]
-                    if other_pawn_col - col == -1: # if the pawn is to the left
-                        return (True, -1)
-                    elif other_pawn_col - col == 1: # to the right
-                        return (True, 1)
+            file = last_move[0]
+            for move in self.move_list:
+                if file in move:
+                    i = self.move_list.index(move)
+                    if team == 'w':
+                        if i % 2 == 1 and "6" in move: # if the move was made by black
+                            continue
+                    else:
+                        if i % 2 == 0 and "3" in move:
+                            continue
+        else:
+            return (False, False)
+        
+        if row == en_passant_row:
+            other_pawn_col = [k for k, v in Move.col_to_file.items() if v == last_move[0]][0]
+            if other_pawn_col - col == -1: # if the pawn is to the left
+                return (True, -1)
+            elif other_pawn_col - col == 1: # to the right
+                return (True, 1)
         return (False, False)
 
     def check_castling_rights(self, king_pos:tuple[int, int]) -> list:
