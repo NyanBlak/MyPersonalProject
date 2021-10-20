@@ -37,14 +37,18 @@ class Move:
         self.enpassant, self.ep_direction = self.enpassant_tuple
 
     def __eq__(self, other):
+        # allows the move object to be compared
+        # to other move objects
         return self.__dict__ == other.__dict__
 
     def __str__(self):
+        # when printing "self", prints
+        # self.notation instead
         return self.notation
 
     @property
     def notation(self) -> bool:
-        # gets the algebraic notation of the move
+        # the algebraic notation of the move
         # ex: pawn to e4 is e4, kingside castles is O-O,
         # knight to c4 is Nc4, queen to h7 is Qh7, etc.
         originating_file = Move.col_to_file[self.start_col]
@@ -71,9 +75,14 @@ class Move:
             capture_str = ''
         return f"{notated_piece_moved}{capture_str}{file}{rank}"
     
+    @notation.setter
+    def notation(self, val):
+        # set notation to the val parameter
+        self._notation = val
+
     @property
     def promotion(self) -> bool:
-        # checks if a pawn has reached the 8th or 1st rank
+        # bool for if a pawn has reached the 8th or 1st rank
         # will promote it to a queen at the moment, this must
         # be changed to allow for under promotion to at least
         # a knight, however bishops and rooks should also
@@ -86,6 +95,8 @@ class Move:
 
     @property
     def enpassant_tuple(self) -> tuple:
+        # returns (en_passant is true bool, 
+        # en_passant direction)
         if len(self.move_list) < 2:
             return (False, False)
         # If it is whites turn, then the move that allow
@@ -112,6 +123,7 @@ class Move:
                         
         return (False, False)
 
+    @property
     def castling(self) -> bool:
         # Checks if the current move is castling, by
         # checking if the piece moved is a King and

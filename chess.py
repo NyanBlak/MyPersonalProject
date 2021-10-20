@@ -7,6 +7,7 @@ import move as m
 import engine as eg
 import tkinter as tk
 from tkinter import messagebox
+import random
 
 # Gets the config file
 path = os.path.abspath(os.getcwd())
@@ -51,11 +52,12 @@ MOVE_LIST_COLOR = WHITE
 # relies on the engine for logic and gameplay
 class Game:
 
-    def __init__(self, title: str, size:tuple[int, int], type:str):
+    def __init__(self, title:str, size:tuple[int, int], type:str, player_team:str=""):
         # Initializes the game window and the pygame module
         # Takes parameters title (title of the program),
-        # size (resolution of the program), and type
-        # ("two_player" or "one_player")
+        # size (resolution of the program), type
+        # ("two_player" or "computer"), and the player's team.
+        # if there are two players playing, this is empty.
         # Creates important objects and variables:
         # self.running (tells if the program is running), 
         # and self.clock (for keeping loops in check)
@@ -64,6 +66,7 @@ class Game:
         pygame.display.set_caption(title)
         self.screen = pygame.display.set_mode(size)
         self.type = type
+        self.player_team = player_team
         self.clock = pygame.time.Clock()
         self.running = True
 
@@ -101,11 +104,28 @@ class Game:
         # Draws everything to the screen, then
         # checks for events, then updates the screen
         self.draw()
-        self.events()
         pygame.display.flip()
+        self.events()
+
+    def computer_move(self):
+        # plays a "computer" move - currently
+        # just plays a random move
+        pygame.time.delay(1000)
+        self.moves = self.state.all_legal_moves()
+        move = random.choice(self.moves)
+        self.successful_move(move)
 
     def events(self):
         # Checks for all events
+
+        # If the game is played against a computer
+        # and it is the computers move, play the
+        # computer's move
+        if self.type == "computer":
+            if not self.state.white_to_move and self.player_team == "w":
+                self.computer_move()
+            elif self.state.white_to_move and self.player_team == "b":
+                self.computer_move()
 
         # Scrolling move list
         keys = pygame.key.get_pressed()
@@ -144,6 +164,9 @@ class Game:
                 else:
                     self.square_selected = row, col
                     self.clicks.append(self.square_selected)
+                    if self.type == "computer":
+                        if not self.player_team in self.state.board[self.clicks[0][0]][self.clicks[0][1]]:
+                            return
                     # if self.clicks contains two coordinates
                     # on the board, play the move
                     if len(self.clicks) == 2:
@@ -213,10 +236,9 @@ class Game:
         end_square = self.clicks[1][0], self.clicks[1][1]
         move = m.Move(start_square, end_square, self.state.board, self.state.move_list)
         if move in self.moves: # if the move is legal
-            self.highlight_move(move)
             self.successful_move(move)
         else: # otherwise, the move is illegal
-            self.unsuccesful_move()
+            self.unsuccessful_move()
 
     def game_wins(self):
         # Tells who won the game, and asks
@@ -252,6 +274,8 @@ class Game:
         #    on the board
         # 7. Adds the algebraic notation of the move
         #    to the move list
+        self.highlighted[0] = "  "
+        self.highlight_move(move)
         self.state.move_piece(move)
         self.run_move_checks(move)
 
@@ -273,7 +297,7 @@ class Game:
 
         self.state.move_list.append(move.notation)
 
-    def unsuccesful_move(self):
+    def unsuccessful_move(self):
         # if the second click is not an empty space and is on the correct team
         # then the highlighted piece changes
         # otherwise self.clicks resets and no piece is highlighted
@@ -315,11 +339,6 @@ class Game:
 
             self.state.board[move.end_row][move.end_col+old_rook_col] = "  "
             self.state.board[move.end_row][move.end_col+new_rook_col] = move.piece_moved[0] + "R"
-
-    def reset_highlighted(self):
-        # Resets the highlighted list, which gets
-        # rid of all highlights on the board
-        self.highlighted = ["  ", "  ", "  "]
 
     def highlight_move(self, move:m.Move):
         # highlights the move passed as a parameter
@@ -433,7 +452,7 @@ class Game:
 
 def main():
     # creates game
-    game = Game("Chess", size, "two_player")
+    game = Game("Chess", size, "computer")
     game.new()
 
 if __name__ == "__main__":

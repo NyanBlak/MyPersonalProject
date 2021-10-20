@@ -162,10 +162,12 @@ class GameState:
         # If the pawn is on the white team and it is
         # on the starting row (6) then it can move two
         # squares, same for the black time, but row 1
-        if team == 'w':
-            right_two_squares = True if row == 6 else False
-        else:
-            right_two_squares = True if row == 1 else False
+        right_two_squares = False
+        if board[end_square[0]][end_square[1]] == "  ":
+            if team == 'w' and row == 6:
+                right_two_squares = True
+            elif team == 'b' and row == 1:
+                right_two_squares = True
 
         # check if space in front is empty, adds it to the move
         # list if so
