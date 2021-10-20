@@ -1,8 +1,8 @@
-from pygame.freetype import STYLE_NORMAL, STYLE_OBLIQUE, STYLE_STRONG, STYLE_UNDERLINE, STYLE_WIDE
 import chess
 import os
 import json
 import pygame
+from pygame.freetype import STYLE_NORMAL, STYLE_OBLIQUE, STYLE_STRONG, STYLE_UNDERLINE, STYLE_WIDE
 
 path = os.path.abspath(os.getcwd())
 with open(os.path.join(path, "config.json")) as file:
@@ -111,11 +111,10 @@ class MainMenu:
 			self.font.render_to(self.screen, (X_OFFSET+2, button.top + button.height/2 - 2), text, (TXT_COLOR))
 
 	def run_two_player(self):
-		res = config["resolution"]
-		game = chess.Game("Chess", (res, res), "two_player")
+		width, height = config["resolution"]
+		game = chess.Game("Chess", (width, height), "two_player")
 		game.new()
 
 if __name__ == "__main__":
     menu = MainMenu(title, size)
     menu.new()
-

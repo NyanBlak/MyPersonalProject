@@ -27,19 +27,14 @@ class Move:
         self.move_list = move_list
         self.board = board
         self.start_square = start_square
-        self.start_row = start_square[0]
-        self.start_col = start_square[1]
+        self.start_row, self.start_col = start_square
         self.end_square = end_square
-        self.end_row = end_square[0]
-        self.end_col = end_square[1]
+        self.end_row, self.end_col = end_square
 
         self.piece_moved = self.board[self.start_row][self.start_col]
         self.piece_captured = self.board[self.end_row][self.end_col]
 
-        self.castling = self.is_move_castling()
-        self.enpassant, self.ep_direction = self.is_move_enpassant()
-        self.promotion = self.is_move_promotion()
-        self.notation = self.get_algebraic_notation()
+        self.enpassant, self.ep_direction = self.enpassant_tuple
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -47,7 +42,8 @@ class Move:
     def __str__(self):
         return self.notation
 
-    def get_algebraic_notation(self):
+    @property
+    def notation(self) -> bool:
         # gets the algebraic notation of the move
         # ex: pawn to e4 is e4, kingside castles is O-O,
         # knight to c4 is Nc4, queen to h7 is Qh7, etc.
@@ -73,10 +69,10 @@ class Move:
         else:
             notated_piece_moved = self.piece_moved[1]
             capture_str = ''
-
         return f"{notated_piece_moved}{capture_str}{file}{rank}"
     
-    def is_move_promotion(self):
+    @property
+    def promotion(self) -> bool:
         # checks if a pawn has reached the 8th or 1st rank
         # will promote it to a queen at the moment, this must
         # be changed to allow for under promotion to at least
@@ -88,7 +84,8 @@ class Move:
             return True
         return False
 
-    def is_move_enpassant(self):
+    @property
+    def enpassant_tuple(self) -> tuple:
         if len(self.move_list) < 2:
             return (False, False)
         # If it is whites turn, then the move that allow
@@ -115,7 +112,7 @@ class Move:
                         
         return (False, False)
 
-    def is_move_castling(self):
+    def castling(self) -> bool:
         # Checks if the current move is castling, by
         # checking if the piece moved is a King and
         # if the King moved 2 columns over in this move

@@ -33,7 +33,7 @@ class GameState:
         self.create_start_pos()
 
     def create_start_pos(self):
-        # creates the basic start position of any chess game
+        # creates the normal start position of any chess game
         self.board[0] = ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR']
         self.board[1] = ['bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP']
         self.board[2] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
@@ -41,31 +41,46 @@ class GameState:
         self.board[4] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
         self.board[5] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
         self.board[6] = ['wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP']
-        self.board[7] = ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']
+        self.board[7] = ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']    
 
     def check_mates(self) -> str:
-        check = self.is_check()
+        # Checks if checkmate or stalemate are
+        # occuring on the board
         opp_moves = self.all_legal_moves()
-        if opp_moves == [] and check:
+        # if the opponent has no moves and they
+        # are in check, then checkmate occurs
+        if opp_moves == [] and self.check:
             return "checkmate"
-        elif opp_moves == [] and not check:
+        # otherwise, if the opponent has no
+        # moves and they are NOT in check, then
+        # stalemate occurs
+        elif opp_moves == [] and not self.check:
             return "stalemate"
 
     def move_piece(self, move:Move, board:list=None):
+        # moves the piece on the given board by
+        # making the start_square empty and the
+        # end_square the piece
         if board == None:
             board = self.board
         board[move.start_row][move.start_col] = "  "
         board[move.end_row][move.end_col] = move.piece_moved
 
     def all_legal_moves(self) -> list:
-        # finds all legal moves by first finding
-        # all possible moves ... (WIP)
+        # finds all legal moves by 
+        # 1. Finding all possible moves in the position
+        # 2. creating a simulated board for each move
+        #    (making a copy of the current board, 
+        #    then playing the move on that sim board)
+        # 3. Gets the king's position, then checks if the
+        #    king is attacked by any piece on the sim board
+        # 4. If it is, the move is illegal, if it is not the
+        #    move is legal
         all_moves = self.all_possible_moves()
         legal_moves = []
         for move in all_moves:
             sim_board = self.create_simulated_board(move)
-            king = "wK" if self.white_to_move else "bK"
-            king_pos = self.find_piece_pos(king, sim_board)
+            king_pos = self.get_king_pos(sim_board)
             unsafe_move = self.is_square_attacked(king_pos, sim_board)
             if not unsafe_move:
                 legal_moves.append(move)
@@ -86,22 +101,21 @@ class GameState:
                         
                         func = self.funcs[piece]
                         func(r, c, moves, flip_color, board)
-
         return moves
 
-    def find_piece_pos(self, piece:str, board:list = None) -> tuple:
+    def get_king_pos(self, board=None):
         if board == None:
             board = self.board
+        king = "wK" if self.white_to_move else "bK"
         for r in range(DIM):
             for c in range(DIM):
-                if board[r][c] == piece:
+                if board[r][c] == king:
                     return r, c
 
-    def is_check(self) -> bool:
-        king = self.get_team() + "K"
-        king_pos = self.find_piece_pos(king)
-        is_attacked = self.is_square_attacked(king_pos)
-        
+    @property
+    def check(self) -> bool:
+        king_pos = self.get_king_pos()
+        is_attacked = self.is_square_attacked(king_pos)  
         return is_attacked
 
     def create_simulated_board(self, move:Move) -> list:
@@ -403,7 +417,7 @@ class GameState:
 
         return legal_castling_moves
 
-    def get_team(self, flip_color=False, opposing=False):
+    def get_team(self, flip_color=False, opposing=False) -> str:
         if opposing:
             black = "w"
             white = "b"

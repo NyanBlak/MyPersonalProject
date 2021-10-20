@@ -1,4 +1,3 @@
-from tkinter.constants import Y
 import pygame
 import pygame.freetype
 import json  
@@ -9,28 +8,31 @@ import engine as eg
 import tkinter as tk
 from tkinter import messagebox
 
+# Gets the config file
 path = os.path.abspath(os.getcwd())
-
 with open(os.path.join(path, "config.json")) as file:
     config = json.load(file)
     file.close()
 
-FPS = 30
-DIM = 8 # 8x8 board
-WHITE = 255, 255, 255
-BLACK = 0, 0, 0
-BASE_HLIGHT_LIST = ["  ", "  ", "  "]
-
-BG_COLOR = BLACK
-BEZEL = 70
-BOARD_SCALER = 5
-
+# config preferences
 LIGHT_COLOR = config["light_square_color"]
 DARK_COLOR = config["dark_square_color"]
 size = WIDTH, HEIGHT = config["resolution"]
 MOVE_HLIGHT_COLOR = config["move_highlight_color"]
 SELECT_COLOR = config["select_color"]
 HIGHLIGHT_THICKNESS = config["highlight_thickness"]
+
+# ALL CONSTANTS 
+FPS = 30
+DIM = 8 # 8x8 board
+WHITE = 255, 255, 255
+BLACK = 0, 0, 0
+DARK_GRAY = 43, 45, 47
+BASE_HLIGHT_LIST = ["  ", "  ", "  "]
+
+BG_COLOR = DARK_GRAY
+BEZEL = 70
+BOARD_SCALER = 5
 
 BOARD_SIZE = BOARD_WIDTH, BOARD_HEIGHT = HEIGHT-HEIGHT/(BOARD_SCALER), HEIGHT-HEIGHT/(BOARD_SCALER)
 SQ_SIZE = int(BOARD_WIDTH / DIM)
@@ -44,9 +46,19 @@ TXT_SIZE = 25
 
 MOVE_LIST_COLOR = WHITE
 
+# Game object: holds the methods and attributes
+# for the display portion of the game of chess;
+# relies on the engine for logic and gameplay
 class Game:
 
     def __init__(self, title: str, size:tuple[int, int], type:str):
+        # Initializes the game window and the pygame module
+        # Takes parameters title (title of the program),
+        # size (resolution of the program), and type
+        # ("two_player" or "one_player")
+        # Creates important objects and variables:
+        # self.running (tells if the program is running), 
+        # and self.clock (for keeping loops in check)
         pygame.init()
 
         pygame.display.set_caption(title)
@@ -56,6 +68,13 @@ class Game:
         self.running = True
 
     def new(self):
+        # Creates all objects for actual interface and
+        # logic, such as fonts, the current square selected
+        # the squares that should be highlighted, the
+        # game state, etc.
+
+        # Creates the start position then starts the main
+        # loop with self.run()
         self.font = pygame.freetype.SysFont(None, TXT_SIZE)
         self.move_list_font = pygame.freetype.SysFont(None, 20)
         self.square_selected = ()
@@ -72,16 +91,23 @@ class Game:
         self.run()
 
     def run(self):
+        # Main loop of the program, runs self.loop()
+        # everytime the clock ticks
         while self.running:
             self.clock.tick(FPS)
             self.loop()
     
     def loop(self):
+        # Draws everything to the screen, then
+        # checks for events, then updates the screen
         self.draw()
         self.events()
         pygame.display.flip()
 
     def events(self):
+        # Checks for all events
+
+        # Scrolling move list
         keys = pygame.key.get_pressed()
         if keys[pygame.K_DOWN]:
             if self.max_row < len(self.state.move_list)/2:
@@ -91,36 +117,55 @@ class Game:
             if self.min_row > 1:
                 self.min_row -= 1
                 self.max_row -= 1
+
         for event in pygame.event.get():
+            # Exits the program if the 'X' button is pressed
             if event.type == pygame.QUIT:
                 exit()
+
+            # Gets pos if a mouse button was clicked
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = x, y = pygame.mouse.get_pos()
                 if x > BOARD_WIDTH + BEZEL or y > BOARD_HEIGHT + BEZEL or x < BEZEL or y < BEZEL:
                     return
+                # column and row of square on chess board
                 col = ((x - BEZEL) // SQ_SIZE)
                 row = ((y - BEZEL) // SQ_SIZE)
 
-                if self.square_selected == (row, col): # If same square is selected twice
+                # If same square is selected twice
+                # reset everything
+                if self.square_selected == (row, col):
                     self.square_selected = ()
                     self.clicks = []
                     self.highlighted[0] = "  "
+                # Otherwise, the current square selected
+                # add the square_selected to the self.clicks
+                # list
                 else:
                     self.square_selected = row, col
                     self.clicks.append(self.square_selected)
-                    if len(self.clicks) == 2: # if the self.clicks licks is 2 long
+                    # if self.clicks contains two coordinates
+                    # on the board, play the move
+                    if len(self.clicks) == 2:
                         self.play_move()
-                    else: # First click, check if the piece is of the correct color, if not clears the click log
-                        piece = self.state.board[self.clicks[0][0]][self.clicks[0][1]]
-                        team = piece[0]
+                    # Otherwise, get the team of the piece
+                    # selected and highlight it if it is
+                    # from the team who's turn it is.
+                    # If it is not, reset self.clicks
+                    else:
+                        team = self.state.board[self.clicks[0][0]][self.clicks[0][1]][0]
                         if (team == 'w' and self.state.white_to_move) or (team == 'b' and not self.state.white_to_move):
                             pos = self.clicks[0]
-                            self.highlight_piece(pos)
+                            self.highlight_square(pos)
                             self.moves = self.state.all_legal_moves()
                         else:
                             self.clicks = []
 
     def wait_for_promotion(self) -> str:
+        # Display the buttons to promote a pawn
+        # then wait until the user inputs a piece,
+        # either through pressing a button,
+        # or inputting a key
         while True:
             self.display_promotion = True
             for event in pygame.event.get():
@@ -156,6 +201,14 @@ class Game:
             
 
     def play_move(self):
+        # 1. gets the start_square and end_square of the
+        #    move from the self.clicks list
+        # 2. creates a Move object from it
+        # 3. checks if the Move object is in the legal
+        #    moves list
+        # 4. if it is, highlight the move and call the
+        #    the successful_move function, otherwise
+        #    call the unsuccessful_move function
         start_square = self.clicks[0][0], self.clicks[0][1]
         end_square = self.clicks[1][0], self.clicks[1][1]
         move = m.Move(start_square, end_square, self.state.board, self.state.move_list)
@@ -166,6 +219,8 @@ class Game:
             self.unsuccesful_move()
 
     def game_wins(self):
+        # Tells who won the game, and asks
+        # the user if another game should be played
         if self.state.white_to_move:
             pygame.display.set_icon(self.icon_b)
             winner = "Black Wins! "
@@ -178,13 +233,26 @@ class Game:
             exit()
 
     def game_draws(self):
+        # Says that the game is a draw and asks
+        # the user if the game should be be played again
         if messagebox.askyesno(title="Draw!", message="It's a Draw! Play Again?"):
             self.state.reset_game()
         else:
             exit()
 
     def successful_move(self, move:m.Move):
-        self.state.move_piece(move, self.state.board)
+        # 1. Moves the piece on the board
+        # 2. Checks special move types
+        # 3. If the move list is long enough,
+        #    the move list is automatically scrolled
+        #    to the next line
+        # 4. Resets self.clicks
+        # 5. Flips the turn
+        # 6. Checks if checkmate or stalemate are
+        #    on the board
+        # 7. Adds the algebraic notation of the move
+        #    to the move list
+        self.state.move_piece(move)
         self.run_move_checks(move)
 
         if self.state.white_to_move and len(self.state.move_list)/2>20:
@@ -194,14 +262,14 @@ class Game:
         self.clicks = []
         self.state.white_to_move = not self.state.white_to_move
 
-        if self.state.is_check():
-            move.notation = move.notation + "+"
-
         mate = self.state.check_mates()
         if mate == "checkmate":
             self.game_wins()
         elif mate == "stalemate":
             self.game_draws()
+
+        if self.state.check:
+            move.notation = move.notation + "+"
 
         self.state.move_list.append(move.notation)
 
@@ -212,27 +280,32 @@ class Game:
         end_square = self.state.board[self.clicks[1][0]][self.clicks[1][1]]
         team = "w" if self.state.white_to_move else "b"
         if team in end_square:
-            self.highlight_piece(self.clicks[1])
+            self.highlight_square(self.clicks[1])
             self.clicks = [self.clicks[1]]
         else:
             self.highlighted[0] = "  "
             self.clicks = []
 
-    def run_move_checks(self, move):
+    def run_move_checks(self, move:m.Move):
+        # If the move is en passant, then get rid of the pawn
+        # that is "en passant-ed"
         if move.enpassant:
             self.state.board[move.end_row + move.ep_direction][move.end_col] = "  "
 
+        # If the move is promotion, wait for the user to
+        # input a piece to promote to, then promote the
+        # pawn to that piece and change the notation of
+        # the move for promotion
         if move.promotion:
             promote_to = self.wait_for_promotion()
             self.promote(move.end_square, promote_to)
             self.display_promotion = False
             move.notation = move.notation + "=" + promote_to
-
+        # if kingside castling, the rook that moves is -1 columns
+        # away from the king, otherwise that rook is +1 columns away
+        # the original rook position (a or h file) is either +1 or -2
+        # columns away
         if move.castling:
-            # if kingside castling, the rook that moves is -1 columns
-            # away from the king, otherwise that rook is +1 columns away
-            # the original rook position (a or h file) is either +1 or -2
-            # columns away
             if move.end_square in [(7, 6), (0, 6)]:
                 new_rook_col = -1
                 old_rook_col = 1
@@ -244,25 +317,33 @@ class Game:
             self.state.board[move.end_row][move.end_col+new_rook_col] = move.piece_moved[0] + "R"
 
     def reset_highlighted(self):
+        # Resets the highlighted list, which gets
+        # rid of all highlights on the board
         self.highlighted = ["  ", "  ", "  "]
 
-    def highlight_move(self, move):
+    def highlight_move(self, move:m.Move):
+        # highlights the move passed as a parameter
         start_box = [move.start_col*SQ_SIZE+BEZEL, move.start_row*SQ_SIZE+BEZEL, SQ_SIZE, SQ_SIZE]
         end_box = [move.end_col*SQ_SIZE+BEZEL, move.end_row*SQ_SIZE+BEZEL, SQ_SIZE, SQ_SIZE]
         self.highlighted[1] = ((start_box, MOVE_HLIGHT_COLOR))
         self.highlighted[2] = ((end_box, MOVE_HLIGHT_COLOR))
 
-    def highlight_piece(self, pos:tuple):
-        row, col = pos
+    def highlight_square(self, square:tuple):
+        # highlights the square passed as a parameter
+        row, col = square
         box = [col*SQ_SIZE+BEZEL, row*SQ_SIZE+BEZEL, SQ_SIZE, SQ_SIZE]
         self.highlighted[0] = ((box, SELECT_COLOR))
 
-    def check_highlighted(self):
+    def draw_highlighted(self):
+        # draws the highlighted squares if they are
+        # in self.highlighted
         for i in self.highlighted:
             if i != "  ":
                 pygame.draw.rect(self.screen, i[1], i[0], HIGHLIGHT_THICKNESS)
 
     def load_images(self):
+        # loads the images necessary for the program
+        # (i.e. pieces and icon images)
         self.icon_w = pygame.image.load(os.path.join(path, "Images", "Icon0.png"))
         self.icon_b = pygame.image.load(os.path.join(path, "Images", "Icon1.png"))
         pygame.display.set_icon(self.icon_w)
@@ -275,31 +356,48 @@ class Game:
             )
 
     def promote(self, pos:tuple[int, int], to_promote):
+        # promotes the piece at position "pos" passed
+        # as a parameter into the piece "to_promote"; also
+        # passed as a parameter
         piece = self.state.board[pos[0]][pos[1]]
         self.state.board[pos[0]][pos[1]] = piece[0] + to_promote
 
     def draw(self):
+        # draws all graphics to the window
         self.screen.fill(BG_COLOR)
         self.draw_board()
         self.draw_pieces()
         self.draw_move_list()
-        self.check_highlighted()
+        self.draw_highlighted()
         if self.display_promotion == True:
-            self.draw_promotion_text()
+            self.draw_promotion_buttons()
 
     def draw_move_list(self):
+        # Draws the move list to the window
         i = 0
         for move in self.state.move_list:
             i += 1
+            # if it is blacks move, the col is 60
+            # pixels to the right, otherwise, it's 0
             col = 60 if i % 2 == 0 else 0
+            # row is the index of the move divided by 2
+            # always rounded up
             row = int(math.ceil(i/2))
+            # display_row is where the row is visually
+            # placed, it is always placed at the
+            # row - (self.max_row - 20)
             display_row = row - (self.max_row - 20)
+            # if it is white's move add the move number
+            # to the front of the string to display
             if i % 2 == 1:
                 move = str(row) + "." + move
+            # if the row is <= the max row to display
+            # and is >= the min row to display, render it
             if row <= self.max_row and row >= self.min_row:
                 self.move_list_font.render_to(self.screen, (BOARD_WIDTH+(col*2)+BEZEL+60, display_row*30+BEZEL), move, MOVE_LIST_COLOR)
 
-    def draw_promotion_text(self):
+    def draw_promotion_buttons(self):
+        # draws the promotion buttons
         self.promotion_rects = []
         to_display = ["Q", "N", "R", "B"]
         STARTING_X = 10
@@ -313,14 +411,20 @@ class Game:
             self.font.render_to(self.screen, (object.centerx, object.centery), to_display[i], PROMOTION_TXT_COLOR)
 
     def draw_board(self):
+        # Draws board
         colors = [LIGHT_COLOR, DARK_COLOR]
 
         for r in range(DIM):
             for c in range(DIM):
+                # if the sum of r and c is even, the square
+                # is a light color, otherwise it is odd
+                # (ex: (0,0) is a light square, but (0,1)
+                # is a dark square)
                 color = colors[(r + c) % 2]
                 pygame.draw.rect(self.screen, color, pygame.Rect(c*SQ_SIZE+BEZEL, r*SQ_SIZE+BEZEL, SQ_SIZE, SQ_SIZE))
 
     def draw_pieces(self):
+        # draws the pieces
         for r in range(DIM):
             for c in range(DIM):
                 piece = self.state.board[r][c]
@@ -328,8 +432,10 @@ class Game:
                     self.screen.blit(self.images[piece], (SQ_SIZE*c+BEZEL, SQ_SIZE*r+BEZEL))
 
 def main():
+    # creates game
     game = Game("Chess", size, "two_player")
     game.new()
 
 if __name__ == "__main__":
+    # runs main if this exact file is run
     main()
