@@ -2,6 +2,7 @@ import chess
 import os
 import json
 import pygame
+import sprites
 from pygame.freetype import STYLE_NORMAL, STYLE_OBLIQUE, STYLE_STRONG, STYLE_UNDERLINE, STYLE_WIDE
 
 path = os.path.abspath(os.getcwd())
@@ -11,8 +12,6 @@ with open(os.path.join(path, "config.json")) as file:
 
 light_square = config["light_square_color"]
 dark_square = config["dark_square_color"]
-
-dark_mode = True if os.system("defaults read -g AppleInterfaceStyle") == 0 else False
 
 CHESS_WIDTH = CHESS_HEIGHT = config["resolution"]
 
@@ -27,17 +26,10 @@ GRAY = 125, 125, 125
 DARK_GRAY = 43, 45, 47
 BLACK = 0, 0, 0
 
-X_OFFSET = 40
-if dark_mode:
-	BG_COLOR = DARK_GRAY
-	TITLE_TXT_COLOR = light_square
-	TXT_COLOR = DARK_GRAY
-	BTN_COLOR = light_square
-else:
-	BG_COLOR = WHITE
-	TITLE_TXT_COLOR = BLACK
-	TXT_COLOR = WHITE
-	BTN_COLOR = BLACK
+BG_COLOR = WHITE
+TITLE_TXT_COLOR = BLACK
+TXT_COLOR = WHITE
+BTN_COLOR = BLACK
 
 class MainMenu:
 
@@ -48,12 +40,29 @@ class MainMenu:
 		self.clock = pygame.time.Clock()
 
 	def new(self):
-		self.title_font = pygame.freetype.SysFont(None, 60, bold=True)
-		self.title_font.style = eval(config["title_style"])
-		self.font = pygame.freetype.SysFont(None, 20)
+		W, H = 64*2, 32*2
+		TITLE_W, TITLE_H = 64*4, 32*4
+		Y, Y_INC = 170, 70
+		CENTER = WIDTH/2 - W/2
+		TITLE_CENTER = WIDTH/2 - TITLE_W/2
+		self.all_sprites = pygame.sprite.Group()
+		self.buttons = pygame.sprite.Group()
+		self.title_font = pygame.font.SysFont(None, 80)
+		self.title_font.set_bold(True)
+		self.title_font.set_underline(True)
+		self.font = pygame.font.SysFont(None, 24)
 
-		self.button_dict = {}
-		self.text_dict = {}
+		buttons = [
+			sprites.Button(TITLE_CENTER, 30, TITLE_W, TITLE_H, self.show_credits, "Chess", TXT_COLOR, self.title_font),
+			sprites.Button(CENTER, Y, W, H, self.play_two_player, "2 Player", TXT_COLOR, self.font),
+			sprites.Button(CENTER, Y+Y_INC, (W/2-10), H, lambda:self.play_computer(True), "White", TXT_COLOR, self.font),
+			sprites.Button(CENTER+(W/2+10), Y+Y_INC, (W/2-10), H, lambda:self.play_computer(False), "Black", TXT_COLOR, self.font),
+			sprites.Button(CENTER, Y+Y_INC, W, H, self.get_color, "Computer", TXT_COLOR, self.font),
+			sprites.Button(CENTER, Y+(2*Y_INC), W, H, exit, "Quit", TXT_COLOR, self.font)
+		]
+		self.buttons.add(buttons)
+		self.all_sprites.add(buttons)
+
 		self.getting_color = False
 		self.run()
 
@@ -71,70 +80,31 @@ class MainMenu:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				exit()
-			if event.type == pygame.MOUSEBUTTONDOWN:
-				pos = pygame.mouse.get_pos()
-				buttons = list(self.button_dict.values())
-				keys = list(self.button_dict.keys())
-				for button in buttons:
-					if pos[0] > button.left and pos[0] < button.left + button.width:
-						if pos[1] > button.top and pos[1] < button.top + button.height:
-							i = buttons.index(button)
-							func, text = keys[i]
-							if (text == "White" or text == "Black") and not self.getting_color:
-								continue
-							func()
+			for button in self.buttons:
+				if (button.text == "Computer") and self.getting_color:
+					continue
+				elif (button.text == "White" or button.text == "Black") and not self.getting_color:
+					continue
+				button.handle_event(event)
     
 	def draw(self):
 		self.screen.fill(BG_COLOR)
-		self.draw_buttons()
-		self.draw_text()
+		self.draw_sprites()
 		pygame.display.flip()
 
-	def draw_buttons(self):
-		w, h = 150, 50
-		two_player_button = pygame.Rect(X_OFFSET, 120, w, h)
-		self.white_button = pygame.Rect(X_OFFSET, 180, w/2-10, h)
-		self.black_button = pygame.Rect(X_OFFSET+(w/2+10), 180, w/2-10, h)
-		computer_button = pygame.Rect(X_OFFSET, 180, w, h)
-		exit_button = pygame.Rect(X_OFFSET, 240, w, h)
-		
-		self.button_dict[self.play_two_player, "2 Player"] = two_player_button
-		self.button_dict[self.get_color, "Computer"] = computer_button
-		self.button_dict[exit, "Exit"] = exit_button
-
-		for button in self.button_dict.values():
-			if button == computer_button and self.getting_color:
-				pygame.draw.rect(self.screen, BTN_COLOR, self.white_button)
-				pygame.draw.rect(self.screen, BTN_COLOR, self.black_button)
+	def draw_sprites(self):
+		for sprite in self.all_sprites:
+			if (sprite.text == "Computer") and self.getting_color:
 				continue
-			elif button == self.white_button or button == self.black_button:
+			elif (sprite.text == "White" or sprite.text == "Black") and not self.getting_color:
 				continue
-			pygame.draw.rect(self.screen, BTN_COLOR, button)
-
-	def draw_text(self):
-		# font.render_to(screen, (x, y), text, color)
-		title = "Chess!"
-		self.title_font.render_to(self.screen,(X_OFFSET-10, 40), title, (TITLE_TXT_COLOR))
-
-		buttons = list(self.button_dict.values())
-		keys = list(self.button_dict.keys())
-		for button in buttons:
-			i = buttons.index(button)
-			text = keys[i][1]
-			if text == "Computer" and self.getting_color:
-				self.font.render_to(self.screen, (X_OFFSET+2, button.top + button.height/2 - 2), "White", (TXT_COLOR))
-				self.font.render_to(self.screen, (X_OFFSET+2+(button.width/2+10), button.top + button.height/2 - 2), "Black", (TXT_COLOR))
-				continue
-			elif text == "White" or text == "Black":
-				continue
-			self.font.render_to(self.screen, (X_OFFSET+2, button.top + button.height/2 - 2), text, (TXT_COLOR))
+			sprite.draw(self.screen)
 
 	def get_color(self):
 		self.getting_color = True
-		self.button_dict[lambda: self.play_computer("w"), "White"] = self.white_button
-		self.button_dict[lambda: self.play_computer("b"), "Black"] = self.black_button
 
-	def play_computer(self, color:str):
+	def play_computer(self, player_is_white:bool):
+		color = "w" if player_is_white else "b"
 		width, height = config["resolution"]
 		game = chess.Game("Chess", (width, height), "computer", color)
 		game.new()
@@ -144,6 +114,9 @@ class MainMenu:
 		game = chess.Game("Chess", (width, height), "two_player")
 		game.new()
 
+	def show_credits(self):
+		print("insert credits here")
+        # Draws the move list to the window
 if __name__ == "__main__":
     menu = MainMenu(title, size)
     menu.new()

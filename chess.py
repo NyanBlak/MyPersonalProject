@@ -52,7 +52,7 @@ MOVE_LIST_COLOR = WHITE
 # relies on the engine for logic and gameplay
 class Game:
 
-    def __init__(self, title:str, size:tuple[int, int], type:str, player_team:str=""):
+    def __init__(self, title:str, size:tuple[int, int], type:str, player_team:str="w"):
         # Initializes the game window and the pygame module
         # Takes parameters title (title of the program),
         # size (resolution of the program), type
@@ -106,6 +106,17 @@ class Game:
         self.draw()
         pygame.display.flip()
         self.events()
+        self.check_computer_move()
+
+    def check_computer_move(self):
+        # If the game is played against a computer
+        # and it is the computers move, play the
+        # computer's move
+        if self.type == "computer":
+            if not self.state.white_to_move and self.player_team == "w":
+                self.computer_move()
+            elif self.state.white_to_move and self.player_team == "b":
+                self.computer_move()
 
     def computer_move(self):
         # plays a "computer" move - currently
@@ -117,15 +128,6 @@ class Game:
 
     def events(self):
         # Checks for all events
-
-        # If the game is played against a computer
-        # and it is the computers move, play the
-        # computer's move
-        if self.type == "computer":
-            if not self.state.white_to_move and self.player_team == "w":
-                self.computer_move()
-            elif self.state.white_to_move and self.player_team == "b":
-                self.computer_move()
 
         # Scrolling move list
         keys = pygame.key.get_pressed()
@@ -142,47 +144,49 @@ class Game:
             # Exits the program if the 'X' button is pressed
             if event.type == pygame.QUIT:
                 exit()
-
             # Gets pos if a mouse button was clicked
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                pos = x, y = pygame.mouse.get_pos()
-                if x > BOARD_WIDTH + BEZEL or y > BOARD_HEIGHT + BEZEL or x < BEZEL or y < BEZEL:
+                x, y = pygame.mouse.get_pos()
+                
+                # If the click was on the board
+                if not (x > BOARD_WIDTH + BEZEL or y > BOARD_HEIGHT + BEZEL or x < BEZEL or y < BEZEL):
+                    # column and row of square on chess board
+                    col = ((x - BEZEL) // SQ_SIZE)
+                    row = ((y - BEZEL) // SQ_SIZE)
+                    self.click_on_the_board(row, col)
+                    
+    def click_on_the_board(self, row:int, col:int):
+        # If same square is selected twice
+        # reset everything
+        if self.square_selected == (row, col):
+            self.square_selected = ()
+            self.clicks = []
+            self.highlighted[0] = "  "
+        # Otherwise, the current square selected
+        # add the square_selected to the self.clicks
+        # list
+        else:
+            self.square_selected = row, col
+            self.clicks.append(self.square_selected)
+            if self.type == "computer":
+                if not self.player_team in self.state.board[self.clicks[0][0]][self.clicks[0][1]]:
                     return
-                # column and row of square on chess board
-                col = ((x - BEZEL) // SQ_SIZE)
-                row = ((y - BEZEL) // SQ_SIZE)
-
-                # If same square is selected twice
-                # reset everything
-                if self.square_selected == (row, col):
-                    self.square_selected = ()
-                    self.clicks = []
-                    self.highlighted[0] = "  "
-                # Otherwise, the current square selected
-                # add the square_selected to the self.clicks
-                # list
+            # if self.clicks contains two coordinates
+            # on the board, play the move
+            if len(self.clicks) == 2:
+                self.play_move()
+            # Otherwise, get the team of the piece
+            # selected and highlight it if it is
+            # from the team who's turn it is.
+            # If it is not, reset self.clicks
+            else:
+                team = self.state.board[self.clicks[0][0]][self.clicks[0][1]][0]
+                if (team == 'w' and self.state.white_to_move) or (team == 'b' and not self.state.white_to_move):
+                    pos = self.clicks[0]
+                    self.highlight_square(pos)
+                    self.moves = self.state.all_legal_moves()
                 else:
-                    self.square_selected = row, col
-                    self.clicks.append(self.square_selected)
-                    if self.type == "computer":
-                        if not self.player_team in self.state.board[self.clicks[0][0]][self.clicks[0][1]]:
-                            return
-                    # if self.clicks contains two coordinates
-                    # on the board, play the move
-                    if len(self.clicks) == 2:
-                        self.play_move()
-                    # Otherwise, get the team of the piece
-                    # selected and highlight it if it is
-                    # from the team who's turn it is.
-                    # If it is not, reset self.clicks
-                    else:
-                        team = self.state.board[self.clicks[0][0]][self.clicks[0][1]][0]
-                        if (team == 'w' and self.state.white_to_move) or (team == 'b' and not self.state.white_to_move):
-                            pos = self.clicks[0]
-                            self.highlight_square(pos)
-                            self.moves = self.state.all_legal_moves()
-                        else:
-                            self.clicks = []
+                    self.clicks = []
 
     def wait_for_promotion(self) -> str:
         # Display the buttons to promote a pawn
@@ -325,6 +329,7 @@ class Game:
             self.promote(move.end_square, promote_to)
             self.display_promotion = False
             move.notation = move.notation + "=" + promote_to
+            print(move.notation + "=" + promote_to)
         # if kingside castling, the rook that moves is -1 columns
         # away from the king, otherwise that rook is +1 columns away
         # the original rook position (a or h file) is either +1 or -2
