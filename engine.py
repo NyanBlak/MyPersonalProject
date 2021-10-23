@@ -35,7 +35,7 @@ class GameState:
     def create_start_pos(self):
         # creates the normal start position of any chess game
         self.board[0] = ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR']
-        self.board[1] = ['bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'wP']
+        self.board[1] = ['bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP']
         self.board[2] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
         self.board[3] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
         self.board[4] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']

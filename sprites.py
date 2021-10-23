@@ -3,15 +3,9 @@ import os
 
 pg.font.init()
 FONT = pg.font.SysFont(None, 16)
-# Default button images/pygame.Surfaces.
-IMAGE_NORMAL = pg.Surface((100, 32))
-IMAGE_NORMAL.fill(pg.Color('dodgerblue1'))
-IMAGE_HOVER = pg.Surface((100, 32))
-IMAGE_HOVER.fill(pg.Color('lightskyblue'))
-IMAGE_DOWN = pg.Surface((100, 32))
-IMAGE_DOWN.fill(pg.Color('aquamarine1'))
 
-path = os.getcwd()
+path = "".join(os.path.split(__file__)[:-1])
+
 IMAGE_NORMAL = pg.image.load(os.path.join(path, "Images", "normal.png"))
 IMAGE_HOVER = pg.image.load(os.path.join(path, "Images", "hover.png"))
 IMAGE_DOWN = pg.image.load(os.path.join(path, "Images", "down.png"))
@@ -20,9 +14,10 @@ class Button(pg.sprite.Sprite):
 
     def __init__(self, x, y, width, height, callback, text='',
         text_color=(0,0,0), font=FONT, image_normal=IMAGE_NORMAL,
-        image_down=IMAGE_DOWN, image_hover=IMAGE_HOVER):
+        image_down=IMAGE_DOWN, image_hover=IMAGE_HOVER, val=-1):
         super().__init__()
 
+        self.val = val
         self.image_normal = pg.transform.scale(image_normal, (width, height))
         self.image_hover = pg.transform.scale(image_hover, (width, height))
         self.image_down = pg.transform.scale(image_down, (width, height))

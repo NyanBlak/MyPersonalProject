@@ -3,6 +3,7 @@ import pygame.freetype
 import json  
 import math
 import os
+import sprites
 import move as m
 import engine as eg
 import tkinter as tk
@@ -10,7 +11,7 @@ from tkinter import messagebox
 import random
 
 # Gets the config file
-path = os.path.abspath(os.getcwd())
+path = "".join(os.path.split(__file__)[:-1])
 with open(os.path.join(path, "config.json")) as file:
     config = json.load(file)
     file.close()
@@ -88,6 +89,13 @@ class Game:
         self.state = eg.GameState()
         self.pieces = ['wP', 'bP', 'wK', 'bK', 'wQ', 'bQ', 'wB', 'bB', 'wN', 'bN', 'wR', 'bR']
         self.min_row, self.max_row = 1, 20
+
+        self.all_sprites = pygame.sprite.Group()
+        self.buttons = pygame.sprite.Group()
+
+        buttons = [
+            sprite.Button()
+        ]
 
         self.load_images()
         self.state.create_start_pos()

@@ -3,3 +3,4 @@ TempCodeRunner.py
 __pycache__
 test.py
 *.code-workspace
+*.vim
