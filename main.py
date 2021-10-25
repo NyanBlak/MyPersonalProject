@@ -33,7 +33,7 @@ dark_square = config["dark_square_color"]
 CHESS_WIDTH = CHESS_HEIGHT = config["resolution"]
 
 # Size of main menu
-WIDTH, HEIGHT = 400, 600
+WIDTH, HEIGHT = 400, 540
 size = WIDTH, HEIGHT
 
 # Title and FPS of window
