@@ -4,10 +4,10 @@ import json
 import math
 import os
 import sprites
+from pymsgbox import  * 
+import computer as c
 import move as m
 import engine as eg
-import tkinter as tk
-from tkinter import messagebox
 import random
 
 # Gets the config file
@@ -68,6 +68,7 @@ class Game:
         self.screen = pygame.display.set_mode(size)
         self.type = type
         self.player_team = player_team
+
         self.clock = pygame.time.Clock()
         self.running = True
 
@@ -90,13 +91,7 @@ class Game:
         self.pieces = ['wP', 'bP', 'wK', 'bK', 'wQ', 'bQ', 'wB', 'bB', 'wN', 'bN', 'wR', 'bR']
         self.min_row, self.max_row = 1, 20
 
-        self.all_sprites = pygame.sprite.Group()
-        self.buttons = pygame.sprite.Group()
-
-        buttons = [
-            sprite.Button()
-        ]
-
+        self.create_sprites()
         self.load_images()
         self.state.create_start_pos()
         self.run()
@@ -116,23 +111,17 @@ class Game:
         self.events()
         self.check_computer_move()
 
-    def check_computer_move(self):
-        # If the game is played against a computer
-        # and it is the computers move, play the
-        # computer's move
-        if self.type == "computer":
-            if not self.state.white_to_move and self.player_team == "w":
-                self.computer_move()
-            elif self.state.white_to_move and self.player_team == "b":
-                self.computer_move()
-
-    def computer_move(self):
-        # plays a "computer" move - currently
-        # just plays a random move
-        pygame.time.delay(1000)
-        self.moves = self.state.all_legal_moves()
-        move = random.choice(self.moves)
-        self.successful_move(move)
+    def wait(self, sprites:pygame.sprite.Group):
+        while True:
+            for event in pygame.event.get():
+                if event == pygame.QUIT:
+                    exit()
+                for sprite in sprites:
+                    sprite.handle_event(event)
+                    if sprite.button_down:
+                        return sprite
+            self.draw()
+            pygame.display.flip()
 
     def events(self):
         # Checks for all events
@@ -162,7 +151,27 @@ class Game:
                     col = ((x - BEZEL) // SQ_SIZE)
                     row = ((y - BEZEL) // SQ_SIZE)
                     self.click_on_the_board(row, col)
-                    
+            for sprite in self.all_sprites:
+                sprite.handle_event(event)
+    
+    def check_computer_move(self):
+        # If the game is played against a computer
+        # and it is the computers move, play the
+        # computer's move
+        if self.type == "computer":
+            if not self.state.white_to_move and self.player_team == "w":
+                self.computer_move()
+            elif self.state.white_to_move and self.player_team == "b":
+                self.computer_move()
+
+    def computer_move(self):
+        # plays a "computer" move - currently
+        # just plays a random move
+        self.moves = self.state.all_legal_moves()
+        cpu = c.Computer(self.moves)
+        move = cpu.get_move()
+        self.successful_move(move)
+
     def click_on_the_board(self, row:int, col:int):
         # If same square is selected twice
         # reset everything
@@ -170,6 +179,11 @@ class Game:
             self.square_selected = ()
             self.clicks = []
             self.highlighted[0] = "  "
+        # Now, is the square pressed an empty square
+        # and self.clicks has no clicks in it, end the
+        # function
+        elif len(self.clicks) == 0 and self.state.board[row][col] == "  ":
+            return
         # Otherwise, the current square selected
         # add the square_selected to the self.clicks
         # list
@@ -256,15 +270,10 @@ class Game:
         # Tells who won the game, and asks
         # the user if another game should be played
         if self.state.white_to_move:
-            pygame.display.set_icon(self.icon_b)
             winner = "Black Wins! "
         else:
-            pygame.display.set_icon(self.icon_w)
             winner = "White Wins! "
-        if messagebox.askyesno(title=winner,message=winner + "Play Again?"):
-            self.state.reset_game()
-        else:
-            exit()
+        p = prompt(text=winner, title=winner)
 
     def game_draws(self):
         # Says that the game is a draw and asks
@@ -296,8 +305,9 @@ class Game:
             self.max_row += 1
 
         self.clicks = []
+        self.square_selected = None
         self.state.white_to_move = not self.state.white_to_move
-
+        
         mate = self.state.check_mates()
         if mate == "checkmate":
             self.game_wins()
@@ -333,11 +343,12 @@ class Game:
         # pawn to that piece and change the notation of
         # the move for promotion
         if move.promotion:
-            promote_to = self.wait_for_promotion()
-            self.promote(move.end_square, promote_to)
+            self.display_promotion = True
+            sprite = self.wait(self.promotion_buttons)
+            to_promote = sprite.text
+            self.state.board[move.end_row][move.end_col] = self.state.get_team() + to_promote
             self.display_promotion = False
-            move.notation = move.notation + "=" + promote_to
-            print(move.notation + "=" + promote_to)
+            move.notation = move.notation + "="
         # if kingside castling, the rook that moves is -1 columns
         # away from the king, otherwise that rook is +1 columns away
         # the original rook position (a or h file) is either +1 or -2
@@ -373,6 +384,16 @@ class Game:
             if i != "  ":
                 pygame.draw.rect(self.screen, i[1], i[0], HIGHLIGHT_THICKNESS)
 
+    def create_sprites(self):
+        self.all_sprites = pygame.sprite.Group()
+        self.promotion_buttons = pygame.sprite.Group()
+        self.buttons = pygame.sprite.Group()
+        
+        to_display = ["Q", "N", "R", "B"]
+        STARTING_X, INC_X = 10, 5
+        for i in range(4):
+             self.promotion_buttons.add(sprites.Button(STARTING_X + BEZEL + (PROMOTION_BOX_SIZE * (i)) + (INC_X * i), BOARD_HEIGHT+PRO_TXT_OFFSET+BEZEL, PROMOTION_BOX_SIZE, PROMOTION_BOX_SIZE, lambda:self.promote(to_display[i]), to_display[i]))
+
     def load_images(self):
         # loads the images necessary for the program
         # (i.e. pieces and icon images)
@@ -387,22 +408,19 @@ class Game:
                     (SQ_SIZE, SQ_SIZE)
             )
 
-    def promote(self, pos:tuple[int, int], to_promote):
-        # promotes the piece at position "pos" passed
-        # as a parameter into the piece "to_promote"; also
-        # passed as a parameter
-        piece = self.state.board[pos[0]][pos[1]]
-        self.state.board[pos[0]][pos[1]] = piece[0] + to_promote
-
     def draw(self):
         # draws all graphics to the window
         self.screen.fill(BG_COLOR)
+        self.draw_sprites()
         self.draw_board()
         self.draw_pieces()
         self.draw_move_list()
         self.draw_highlighted()
+
+    def draw_sprites(self):
         if self.display_promotion == True:
-            self.draw_promotion_buttons()
+            self.promotion_buttons.draw(self.screen)
+        self.all_sprites.draw(self.screen)
 
     def draw_move_list(self):
         # Draws the move list to the window
@@ -427,20 +445,6 @@ class Game:
             # and is >= the min row to display, render it
             if row <= self.max_row and row >= self.min_row:
                 self.move_list_font.render_to(self.screen, (BOARD_WIDTH+(col*2)+BEZEL+60, display_row*30+BEZEL), move, MOVE_LIST_COLOR)
-
-    def draw_promotion_buttons(self):
-        # draws the promotion buttons
-        self.promotion_rects = []
-        to_display = ["Q", "N", "R", "B"]
-        STARTING_X = 10
-        INC_X = 5
-        for i in range(4):
-            rect = pygame.Rect(STARTING_X + BEZEL + (PROMOTION_BOX_SIZE * (i)) + (INC_X * i), BOARD_HEIGHT+PRO_TXT_OFFSET+BEZEL, PROMOTION_BOX_SIZE, PROMOTION_BOX_SIZE)
-            self.promotion_rects.append(rect)
-        for object in self.promotion_rects:
-            i = self.promotion_rects.index(object)
-            pygame.draw.rect(self.screen, PROMOTION_BG_COLOR, object)
-            self.font.render_to(self.screen, (object.centerx, object.centery), to_display[i], PROMOTION_TXT_COLOR)
 
     def draw_board(self):
         # Draws board
