@@ -273,7 +273,10 @@ class Game:
             winner = "Black Wins! "
         else:
             winner = "White Wins! "
-        p = prompt(text=winner, title=winner)
+        if prompt(text=winner, title=winner):
+            self.state.reset_game()
+        else:
+            exit()
 
     def game_draws(self):
         # Says that the game is a draw and asks
