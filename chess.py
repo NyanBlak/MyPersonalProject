@@ -210,45 +210,6 @@ class Game:
                 else:
                     self.clicks = []
 
-    def wait_for_promotion(self) -> str:
-        # Display the buttons to promote a pawn
-        # then wait until the user inputs a piece,
-        # either through pressing a button,
-        # or inputting a key
-        while True:
-            self.display_promotion = True
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    exit()
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_n or event.key == pygame.K_k:
-                        return "N"
-                    elif event.key == pygame.K_r:
-                        return "R"
-                    elif event.key == pygame.K_q:
-                        return "Q"
-                    elif event.key == pygame.K_b:
-                        return "B"
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    pos = pygame.mouse.get_pos()
-                    x, y = pos
-                    # self.promotion_rects [queen, rook, knight, bishop]
-                    if x > self.promotion_rects[0].left and x < self.promotion_rects[0].right:
-                        if y > self.promotion_rects[0].top and y < self.promotion_rects[0].bottom:
-                            return "Q"
-                    if x > self.promotion_rects[1].left and x < self.promotion_rects[1].right:
-                        if y > self.promotion_rects[1].top and y < self.promotion_rects[1].bottom:
-                            return "R"
-                    if x > self.promotion_rects[2].left and x < self.promotion_rects[2].right:
-                        if y > self.promotion_rects[2].top and y < self.promotion_rects[2].bottom:
-                            return "N"
-                    if x > self.promotion_rects[3].left and x < self.promotion_rects[3].right:
-                        if y > self.promotion_rects[3].top and y < self.promotion_rects[3].bottom:
-                            return "B"
-            self.draw()
-            pygame.display.flip()
-            
-
     def play_move(self):
         # 1. gets the start_square and end_square of the
         #    move from the self.clicks list
@@ -452,7 +413,6 @@ class Game:
     def draw_board(self):
         # Draws board
         colors = [LIGHT_COLOR, DARK_COLOR]
-
         for r in range(DIM):
             for c in range(DIM):
                 # if the sum of r and c is even, the square

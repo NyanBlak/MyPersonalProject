@@ -8,6 +8,14 @@ RED = 255, 0, 0
 w_pawn_moves_that_allow_ep = ["a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4"]
 b_pawn_moves_that_allow_ep = ["a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5"]
 
+material_dictionary = {
+    "Q" : 9,
+    "R" : 5,
+    "B" : 3,
+    "N" : 3,
+    "P" : 1
+}
+
 class GameState:
 
     def __init__(self):
@@ -111,6 +119,19 @@ class GameState:
             for c in range(DIM):
                 if board[r][c] == king:
                     return r, c
+
+    @property
+    def material(self) -> int:
+        black_material = 0
+        white_material = 0
+        for r in range(DIM):
+            for c in range(DIM):
+                team, piece = self.board[r][c][0], self.board[r][c][1]
+                value = material_dictionary[piece]
+                if team == "w":
+                    white_material += value
+                else:
+                    black_material += value
 
     @property
     def check(self) -> bool:
