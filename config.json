@@ -2,8 +2,8 @@
 	"resolution" : [1200, 800],
 	"light_square_color" : [234, 233, 211],
 	"dark_square_color" : [77, 116, 152],
-	"theme_set" : "NeoPieces",
+	"theme_set" : "BasicPieces",
 	"select_color" : [255, 0, 0],
-	"move_highlight_color" : [0, 0, 255],
-	"highlight_thickness": 4
+	"dark_highlight_color" : [52, 142, 202],
+	"light_highlight_color" : [131, 200, 232]
 }

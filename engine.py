@@ -126,12 +126,15 @@ class GameState:
         white_material = 0
         for r in range(DIM):
             for c in range(DIM):
+                if self.board[r][c] == "  " or "K" in self.board[r][c]:
+                    continue
                 team, piece = self.board[r][c][0], self.board[r][c][1]
                 value = material_dictionary[piece]
                 if team == "w":
                     white_material += value
                 else:
                     black_material += value
+        return white_material - black_material
 
     @property
     def check(self) -> bool:

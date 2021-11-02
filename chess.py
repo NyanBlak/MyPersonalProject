@@ -20,9 +20,8 @@ with open(os.path.join(path, "config.json")) as file:
 LIGHT_COLOR = config["light_square_color"]
 DARK_COLOR = config["dark_square_color"]
 size = WIDTH, HEIGHT = config["resolution"]
-MOVE_HLIGHT_COLOR = config["move_highlight_color"]
-SELECT_COLOR = config["select_color"]
-HIGHLIGHT_THICKNESS = config["highlight_thickness"]
+LIGHT_HIGHLIGHT_COLOR = config["light_highlight_color"]
+DARK_HIGHLIGHT_COLOR = config["dark_highlight_color"]
 
 # ALL CONSTANTS 
 FPS = 30
@@ -30,7 +29,6 @@ DIM = 8 # 8x8 board
 WHITE = 255, 255, 255
 BLACK = 0, 0, 0
 DARK_GRAY = 43, 45, 47
-BASE_HLIGHT_LIST = ["  ", "  ", "  "]
 
 BG_COLOR = DARK_GRAY
 BEZEL = 70
@@ -84,7 +82,8 @@ class Game:
         self.move_list_font = pygame.freetype.SysFont(None, 20)
         self.square_selected = ()
         self.clicks = []
-        self.highlighted = ["  ", "  ", "  "]
+        self.highlighted_square = ()
+        self.highlighted_move = ()
         self.buttons = None
         self.display_promotion = False
         self.state = eg.GameState()
@@ -178,7 +177,7 @@ class Game:
         if self.square_selected == (row, col):
             self.square_selected = ()
             self.clicks = []
-            self.highlighted[0] = "  "
+            self.highlighted_square = ()
         # Now, is the square pressed an empty square
         # and self.clicks has no clicks in it, end the
         # function
@@ -259,7 +258,7 @@ class Game:
         #    on the board
         # 7. Adds the algebraic notation of the move
         #    to the move list
-        self.highlighted[0] = "  "
+        self.highlighted_square = ()
         self.highlight_move(move)
         self.state.move_piece(move)
         self.run_move_checks(move)
@@ -293,7 +292,7 @@ class Game:
             self.highlight_square(self.clicks[1])
             self.clicks = [self.clicks[1]]
         else:
-            self.highlighted[0] = "  "
+            self.highlighted_square = ()
             self.clicks = []
 
     def run_move_checks(self, move:m.Move):
@@ -330,23 +329,12 @@ class Game:
 
     def highlight_move(self, move:m.Move):
         # highlights the move passed as a parameter
-        start_box = [move.start_col*SQ_SIZE+BEZEL, move.start_row*SQ_SIZE+BEZEL, SQ_SIZE, SQ_SIZE]
-        end_box = [move.end_col*SQ_SIZE+BEZEL, move.end_row*SQ_SIZE+BEZEL, SQ_SIZE, SQ_SIZE]
-        self.highlighted[1] = ((start_box, MOVE_HLIGHT_COLOR))
-        self.highlighted[2] = ((end_box, MOVE_HLIGHT_COLOR))
+        self.highlighted_move = ((move.start_row, move.start_col), (move.end_row, move.end_col))
 
     def highlight_square(self, square:tuple):
         # highlights the square passed as a parameter
         row, col = square
-        box = [col*SQ_SIZE+BEZEL, row*SQ_SIZE+BEZEL, SQ_SIZE, SQ_SIZE]
-        self.highlighted[0] = ((box, SELECT_COLOR))
-
-    def draw_highlighted(self):
-        # draws the highlighted squares if they are
-        # in self.highlighted
-        for i in self.highlighted:
-            if i != "  ":
-                pygame.draw.rect(self.screen, i[1], i[0], HIGHLIGHT_THICKNESS)
+        self.highlighted_square = (row, col)
 
     def create_sprites(self):
         self.all_sprites = pygame.sprite.Group()
@@ -379,7 +367,6 @@ class Game:
         self.draw_board()
         self.draw_pieces()
         self.draw_move_list()
-        self.draw_highlighted()
 
     def draw_sprites(self):
         if self.display_promotion == True:
@@ -413,14 +400,18 @@ class Game:
     def draw_board(self):
         # Draws board
         colors = [LIGHT_COLOR, DARK_COLOR]
+        highlight_colors = [LIGHT_HIGHLIGHT_COLOR, DARK_HIGHLIGHT_COLOR]
         for r in range(DIM):
             for c in range(DIM):
                 # if the sum of r and c is even, the square
                 # is a light color, otherwise it is odd
                 # (ex: (0,0) is a light square, but (0,1)
                 # is a dark square)
-                color = colors[(r + c) % 2]
-                pygame.draw.rect(self.screen, color, pygame.Rect(c*SQ_SIZE+BEZEL, r*SQ_SIZE+BEZEL, SQ_SIZE, SQ_SIZE))
+                index = (r + c) % 2
+                if ((r, c) == self.highlighted_square) or ((r, c) in self.highlighted_move):
+                    pygame.draw.rect(self.screen, highlight_colors[index], pygame.Rect(c*SQ_SIZE+BEZEL, r*SQ_SIZE+BEZEL, SQ_SIZE, SQ_SIZE))
+                    continue
+                pygame.draw.rect(self.screen, colors[index], pygame.Rect(c*SQ_SIZE+BEZEL, r*SQ_SIZE+BEZEL, SQ_SIZE, SQ_SIZE))
 
     def draw_pieces(self):
         # draws the pieces
@@ -432,7 +423,7 @@ class Game:
 
 def main():
     # creates game
-    game = Game("Chess", size, "computer")
+    game = Game("Chess", size, "two_player")
     game.new()
 
 if __name__ == "__main__":
