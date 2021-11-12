@@ -33,6 +33,7 @@ class GameState:
             "Q": self.get_queen_moves,
             "N": self.get_knight_moves
         }
+        self.example_pos()
 
     def reset_game(self):
         # resets the game state by reinitializing it
@@ -50,6 +51,16 @@ class GameState:
         self.board[5] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
         self.board[6] = ['wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP']
         self.board[7] = ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']    
+
+    def example_pos(self):
+        self.board[0] = ['bK', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[1] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[2] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[3] = ['  ', '  ', '  ', 'wB', '  ', '  ', '  ', '  ']
+        self.board[4] = ['  ', '  ', 'wQ', 'bR', '  ', '  ', '  ', '  ']
+        self.board[5] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[6] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[7] = ['wK', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
 
     def check_mates(self) -> str:
         # Checks if checkmate or stalemate are
@@ -74,7 +85,7 @@ class GameState:
         board[move.start_row][move.start_col] = "  "
         board[move.end_row][move.end_col] = move.piece_moved
 
-    def all_legal_moves(self) -> list:
+    def all_legal_moves(self, board:list=None, flip_color:bool=False) -> list:
         # finds all legal moves by 
         # 1. Finding all possible moves in the position
         # 2. creating a simulated board for each move
@@ -84,11 +95,20 @@ class GameState:
         #    king is attacked by any piece on the sim board
         # 4. If it is, the move is illegal, if it is not the
         #    move is legal
-        all_moves = self.all_possible_moves()
+        if board == None:
+            board = self.board
+        team = self.get_team(flip_color)
         legal_moves = []
+        all_moves = self.all_possible_moves(board, flip_color)
         for move in all_moves:
             sim_board = self.create_simulated_board(move)
-            king_pos = self.get_king_pos(sim_board)
+            king_pos = self.get_king_pos(team, sim_board)
+            if type(king_pos) != tuple:
+                print(self.board == board)
+                print("start_square :  " + str(move.start_square))
+                print("end_square :  " + str(move.end_square))
+                print(move.piece_moved)
+                print(move.piece_captured)
             unsafe_move = self.is_square_attacked(king_pos, sim_board)
             if not unsafe_move:
                 legal_moves.append(move)
@@ -111,34 +131,34 @@ class GameState:
                         func(r, c, moves, flip_color, board)
         return moves
 
-    def get_king_pos(self, board=None):
+    def get_king_pos(self, team, board=None):
         if board == None:
             board = self.board
-        king = "wK" if self.white_to_move else "bK"
+        king = team + "K"
         for r in range(DIM):
             for c in range(DIM):
                 if board[r][c] == king:
                     return r, c
 
-    @property
-    def material(self) -> int:
-        black_material = 0
-        white_material = 0
+    def get_material(self, board=None) -> int:
+        if board == None:
+            board = self.board
+        material = 0
         for r in range(DIM):
             for c in range(DIM):
-                if self.board[r][c] == "  " or "K" in self.board[r][c]:
+                if board[r][c] == "  " or "K" in board[r][c]:
                     continue
-                team, piece = self.board[r][c][0], self.board[r][c][1]
+                team, piece = board[r][c][0], board[r][c][1]
                 value = material_dictionary[piece]
                 if team == "w":
-                    white_material += value
+                    material += value
                 else:
-                    black_material += value
-        return white_material - black_material
+                    material -= value
+        return material
 
     @property
     def check(self) -> bool:
-        king_pos = self.get_king_pos()
+        king_pos = self.get_king_pos(self.get_team())
         is_attacked = self.is_square_attacked(king_pos)  
         return is_attacked
 
@@ -336,10 +356,9 @@ class GameState:
         for direction in directions:
             end_square = end_row, end_col = row + direction[0], col + direction[1]
             if end_row < 0 or end_row > 7 or end_col < 0 or end_col > 7:
-                pass
+                continue
             elif board[end_row][end_col] == "  " or opposing_team in self.board[end_row][end_col]:
                 moves.append(Move(start_square, end_square, self.board, self.move_list))
-
         legal_castling = self.check_castling_rights(start_square)
         if legal_castling != []:
             for move in legal_castling:

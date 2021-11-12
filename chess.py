@@ -34,7 +34,8 @@ BG_COLOR = DARK_GRAY
 BEZEL = 70
 BOARD_SCALER = 5
 
-BOARD_SIZE = BOARD_WIDTH, BOARD_HEIGHT = HEIGHT-HEIGHT/(BOARD_SCALER), HEIGHT-HEIGHT/(BOARD_SCALER)
+BOARD_WIDTH, BOARD_HEIGHT = HEIGHT-HEIGHT/(BOARD_SCALER), HEIGHT-HEIGHT/(BOARD_SCALER)
+BOARD_SIZE = BOARD_WIDTH, BOARD_HEIGHT
 SQ_SIZE = int(BOARD_WIDTH / DIM)
 
 X_OF_PROMOTION_TXT = 30
@@ -92,7 +93,6 @@ class Game:
 
         self.create_sprites()
         self.load_images()
-        self.state.create_start_pos()
         self.run()
 
     def run(self):
@@ -107,8 +107,8 @@ class Game:
         # checks for events, then updates the screen
         self.draw()
         pygame.display.flip()
-        self.events()
         self.check_computer_move()
+        self.events()
 
     def wait(self, sprites:pygame.sprite.Group):
         while True:
@@ -166,8 +166,8 @@ class Game:
     def computer_move(self):
         # plays a "computer" move - currently
         # just plays a random move
-        self.moves = self.state.all_legal_moves()
-        cpu = c.Computer(self.moves)
+        comp_num = 1 if self.state.white_to_move else -1
+        cpu = c.Computer(self.state, comp_num)
         move = cpu.get_move()
         self.successful_move(move)
 
@@ -225,6 +225,7 @@ class Game:
             self.successful_move(move)
         else: # otherwise, the move is illegal
             self.unsuccessful_move()
+            return
 
     def game_wins(self):
         # Tells who won the game, and asks
