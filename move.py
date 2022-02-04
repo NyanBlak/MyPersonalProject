@@ -19,7 +19,7 @@ class Move:
     row_to_rank = {7: "1", 6: "2", 5: "3", 4: "4", 3: "5", 2: "6", 1: "7", 0: "8"}
     col_to_file = {0: "a", 1: "b", 2: "c", 3: "d", 4: "e", 5: "f", 6: "g", 7: "h"}
 
-    def __init__(self, start_square:tuple[int, int], end_square:tuple[int,int], board:list, move_list:list):
+    def __init__(self, start_square:tuple, end_square:tuple, board:list, move_list:list):
         # initalizes the move with its required attributes
         # (board, start_square(row, col), end_square(row, col),
         # the piece that moved, the piece/space that is being

@@ -33,7 +33,9 @@ class GameState:
             "Q": self.get_queen_moves,
             "N": self.get_knight_moves
         }
-        self.example_pos()
+        self.checkmate, self.stalemate = False, False
+        self.create_start_pos()
+        #self.example_pos()
 
     def reset_game(self):
         # resets the game state by reinitializing it
@@ -53,28 +55,14 @@ class GameState:
         self.board[7] = ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']    
 
     def example_pos(self):
-        self.board[0] = ['bK', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
-        self.board[1] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[0] = ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR']
+        self.board[1] = ['bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP']
         self.board[2] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
-        self.board[3] = ['  ', '  ', '  ', 'wB', '  ', '  ', '  ', '  ']
-        self.board[4] = ['  ', '  ', 'wQ', 'bR', '  ', '  ', '  ', '  ']
-        self.board[5] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
-        self.board[6] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
-        self.board[7] = ['wK', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
-
-    def check_mates(self) -> str:
-        # Checks if checkmate or stalemate are
-        # occuring on the board
-        opp_moves = self.all_legal_moves()
-        # if the opponent has no moves and they
-        # are in check, then checkmate occurs
-        if opp_moves == [] and self.check:
-            return "checkmate"
-        # otherwise, if the opponent has no
-        # moves and they are NOT in check, then
-        # stalemate occurs
-        elif opp_moves == [] and not self.check:
-            return "stalemate"
+        self.board[3] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[4] = ['  ', '  ', 'wB', '  ', '  ', '  ', '  ', '  ']
+        self.board[5] = ['  ', '  ', '  ', '  ', '  ', 'wQ', '  ', '  ']
+        self.board[6] = ['wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP']
+        self.board[7] = ['wR', 'wN', 'wB', '  ', 'wK', 'wB', 'wN', 'wR']    
 
     def move_piece(self, move:Move, board:list=None):
         # moves the piece on the given board by
@@ -112,6 +100,12 @@ class GameState:
             unsafe_move = self.is_square_attacked(king_pos, sim_board)
             if not unsafe_move:
                 legal_moves.append(move)
+        if len(legal_moves) == 0:
+            check = self.is_check(board, flip_color)
+            if check:
+                self.checkmate = True
+            elif not check:
+                self.stalemate = True
         return legal_moves
 
     def all_possible_moves(self, board:list = None, flip_color:bool = False) -> list:
@@ -156,18 +150,32 @@ class GameState:
                     material -= value
         return material
 
-    @property
-    def check(self) -> bool:
-        king_pos = self.get_king_pos(self.get_team())
-        is_attacked = self.is_square_attacked(king_pos)  
+    def is_check(self, board=None, flip_color=False) -> bool:
+        if board == None:
+            board = self.board
+        king_pos = self.get_king_pos(self.get_team(), board)
+        is_attacked = self.is_square_attacked(king_pos, board)  
         return is_attacked
 
-    def create_simulated_board(self, move:Move) -> list:
-        simulated = [i.copy() for i in self.board]
+    def is_checkmate(self, board=None, flip_color=False) -> bool:
+        moves = []
+        if board == None:
+            board = self.board
+        row, col = self.get_king_pos(self.get_team(not flip_color))
+        self.get_king_moves(row, col, moves, not flip_color, board)
+        if len(moves) == 0:
+            if self.is_check(board, not flip_color):
+                return True
+        
+
+    def create_simulated_board(self, move:Move, board=None) -> list:
+        if board is None:
+            board = self.board
+        simulated = [i.copy() for i in board]
         self.move_piece(move, simulated)
         return simulated
 
-    def is_square_attacked(self, pos:tuple[int, int], board:list=None) -> bool:
+    def is_square_attacked(self, pos:tuple, board:list=None) -> bool:
         if board == None:
             board = self.board
         row, col = pos
@@ -389,7 +397,7 @@ class GameState:
                 elif opposing_team in board[end_row][end_col]:
                     moves.append(Move(start_square, end_square, self.board, self.move_list))
     
-    def check_enpassant(self, pos:tuple[int, int]) -> tuple:
+    def check_enpassant(self, pos:tuple) -> tuple:
         # checks if en passant is legal by checking if
         # the last move played was a pawn up two squares
         # and if there is a pawn on the correct row
@@ -429,7 +437,7 @@ class GameState:
                 return (True, 1)
         return (False, False)
 
-    def check_castling_rights(self, king_pos:tuple[int, int]) -> list:
+    def check_castling_rights(self, king_pos:tuple) -> list:
         # checks if castling is legal on either side
         # by checking if the king has moved from its
         # starting square and if the rooks have

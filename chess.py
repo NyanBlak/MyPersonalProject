@@ -4,7 +4,6 @@ import json
 import math
 import os
 import sprites
-from pymsgbox import  * 
 import computer as c
 import move as m
 import engine as eg
@@ -52,7 +51,7 @@ MOVE_LIST_COLOR = WHITE
 # relies on the engine for logic and gameplay
 class Game:
 
-    def __init__(self, title:str, size:tuple[int, int], type:str, player_team:str="w"):
+    def __init__(self, title:str, size:tuple, type:str, player_team:str="w"):
         # Initializes the game window and the pygame module
         # Takes parameters title (title of the program),
         # size (resolution of the program), type
@@ -167,8 +166,10 @@ class Game:
         # plays a "computer" move - currently
         # just plays a random move
         comp_num = 1 if self.state.white_to_move else -1
-        cpu = c.Computer(self.state, comp_num)
+        cpu = c.Computer(self.state)
         move = cpu.get_move()
+        if move is None:
+            cpu.get_random_move()
         self.successful_move(move)
 
     def click_on_the_board(self, row:int, col:int):
@@ -272,13 +273,7 @@ class Game:
         self.square_selected = None
         self.state.white_to_move = not self.state.white_to_move
         
-        mate = self.state.check_mates()
-        if mate == "checkmate":
-            self.game_wins()
-        elif mate == "stalemate":
-            self.game_draws()
-
-        if self.state.check:
+        if self.state.is_check():
             move.notation = move.notation + "+"
 
         self.state.move_list.append(move.notation)
