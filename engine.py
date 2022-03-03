@@ -55,14 +55,14 @@ class GameState:
         self.board[7] = ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR']    
 
     def example_pos(self):
-        self.board[0] = ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR']
-        self.board[1] = ['bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP']
-        self.board[2] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[0] = ['  ', '  ', '  ', '  ', 'bK', '  ', '  ', '  ']
+        self.board[1] = ['  ', 'wQ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[2] = ['wQ', '  ', '  ', '  ', 'wK', '  ', '  ', '  ']
         self.board[3] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
-        self.board[4] = ['  ', '  ', 'wB', '  ', '  ', '  ', '  ', '  ']
-        self.board[5] = ['  ', '  ', '  ', '  ', '  ', 'wQ', '  ', '  ']
-        self.board[6] = ['wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP']
-        self.board[7] = ['wR', 'wN', 'wB', '  ', 'wK', 'wB', 'wN', 'wR']    
+        self.board[4] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[5] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[6] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']
+        self.board[7] = ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']    
 
     def move_piece(self, move:Move, board:list=None):
         # moves the piece on the given board by
@@ -91,6 +91,7 @@ class GameState:
         for move in all_moves:
             sim_board = self.create_simulated_board(move)
             king_pos = self.get_king_pos(team, sim_board)
+            # debugging
             if type(king_pos) != tuple:
                 print(self.board == board)
                 print("start_square :  " + str(move.start_square))
@@ -100,12 +101,6 @@ class GameState:
             unsafe_move = self.is_square_attacked(king_pos, sim_board)
             if not unsafe_move:
                 legal_moves.append(move)
-        if len(legal_moves) == 0:
-            check = self.is_check(board, flip_color)
-            if check:
-                self.checkmate = True
-            elif not check:
-                self.stalemate = True
         return legal_moves
 
     def all_possible_moves(self, board:list = None, flip_color:bool = False) -> list:

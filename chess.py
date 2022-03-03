@@ -30,12 +30,11 @@ BLACK = 0, 0, 0
 DARK_GRAY = 43, 45, 47
 
 BG_COLOR = DARK_GRAY
-BEZEL = 70
-BOARD_SCALER = 5
 
-BOARD_WIDTH, BOARD_HEIGHT = HEIGHT-HEIGHT/(BOARD_SCALER), HEIGHT-HEIGHT/(BOARD_SCALER)
+BOARD_WIDTH, BOARD_HEIGHT = size[0], size[0]
+print(BOARD_WIDTH, BOARD_HEIGHT)
 BOARD_SIZE = BOARD_WIDTH, BOARD_HEIGHT
-SQ_SIZE = int(BOARD_WIDTH / DIM)
+SQ_SIZE = BOARD_WIDTH // DIM
 
 X_OF_PROMOTION_TXT = 30
 PROMOTION_BG_COLOR = WHITE
@@ -90,7 +89,6 @@ class Game:
         self.pieces = ['wP', 'bP', 'wK', 'bK', 'wQ', 'bQ', 'wB', 'bB', 'wN', 'bN', 'wR', 'bR']
         self.min_row, self.max_row = 1, 20
 
-        self.create_sprites()
         self.load_images()
         self.run()
 
@@ -143,14 +141,10 @@ class Game:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = pygame.mouse.get_pos()
                 
-                # If the click was on the board
-                if not (x > BOARD_WIDTH + BEZEL or y > BOARD_HEIGHT + BEZEL or x < BEZEL or y < BEZEL):
-                    # column and row of square on chess board
-                    col = ((x - BEZEL) // SQ_SIZE)
-                    row = ((y - BEZEL) // SQ_SIZE)
-                    self.click_on_the_board(row, col)
-            for sprite in self.all_sprites:
-                sprite.handle_event(event)
+                # column and row of square on chess board
+                col = x // SQ_SIZE
+                row = y // SQ_SIZE
+                self.click_on_the_board(row, col)
     
     def check_computer_move(self):
         # If the game is played against a computer
@@ -277,6 +271,13 @@ class Game:
             move.notation = move.notation + "+"
 
         self.state.move_list.append(move.notation)
+        if len(self.state.all_legal_moves()) == 0:
+            check = self.state.is_check()
+            if check:
+                self.state.checkmate = True
+            elif not check:
+                self.state.stalemate = True
+            self.write_move_list()
 
     def unsuccessful_move(self):
         # if the second click is not an empty space and is on the correct team
@@ -302,9 +303,7 @@ class Game:
         # pawn to that piece and change the notation of
         # the move for promotion
         if move.promotion:
-            self.display_promotion = True
-            sprite = self.wait(self.promotion_buttons)
-            to_promote = sprite.text
+            to_promote = "Q"
             self.state.board[move.end_row][move.end_col] = self.state.get_team() + to_promote
             self.display_promotion = False
             move.notation = move.notation + "="
@@ -332,16 +331,6 @@ class Game:
         row, col = square
         self.highlighted_square = (row, col)
 
-    def create_sprites(self):
-        self.all_sprites = pygame.sprite.Group()
-        self.promotion_buttons = pygame.sprite.Group()
-        self.buttons = pygame.sprite.Group()
-        
-        to_display = ["Q", "N", "R", "B"]
-        STARTING_X, INC_X = 10, 5
-        for i in range(4):
-             self.promotion_buttons.add(sprites.Button(STARTING_X + BEZEL + (PROMOTION_BOX_SIZE * (i)) + (INC_X * i), BOARD_HEIGHT+PRO_TXT_OFFSET+BEZEL, PROMOTION_BOX_SIZE, PROMOTION_BOX_SIZE, lambda:self.promote(to_display[i]), to_display[i]))
-
     def load_images(self):
         # loads the images necessary for the program
         # (i.e. pieces and icon images)
@@ -356,42 +345,19 @@ class Game:
                     (SQ_SIZE, SQ_SIZE)
             )
 
+    def write_move_list(self):
+        with open("move_list.txt", "w") as f:
+            f.write(self.state.move_list)
+
     def draw(self):
         # draws all graphics to the window
         self.screen.fill(BG_COLOR)
-        self.draw_sprites()
         self.draw_board()
         self.draw_pieces()
-        self.draw_move_list()
-
-    def draw_sprites(self):
-        if self.display_promotion == True:
-            self.promotion_buttons.draw(self.screen)
-        self.all_sprites.draw(self.screen)
-
-    def draw_move_list(self):
-        # Draws the move list to the window
-        i = 0
-        for move in self.state.move_list:
-            i += 1
-            # if it is blacks move, the col is 60
-            # pixels to the right, otherwise, it's 0
-            col = 60 if i % 2 == 0 else 0
-            # row is the index of the move divided by 2
-            # always rounded up
-            row = int(math.ceil(i/2))
-            # display_row is where the row is visually
-            # placed, it is always placed at the
-            # row - (self.max_row - 20)
-            display_row = row - (self.max_row - 20)
-            # if it is white's move add the move number
-            # to the front of the string to display
-            if i % 2 == 1:
-                move = str(row) + "." + move
-            # if the row is <= the max row to display
-            # and is >= the min row to display, render it
-            if row <= self.max_row and row >= self.min_row:
-                self.move_list_font.render_to(self.screen, (BOARD_WIDTH+(col*2)+BEZEL+60, display_row*30+BEZEL), move, MOVE_LIST_COLOR)
+        if self.state.checkmate:
+            self.font.render_to(self.screen, (BOARD_WIDTH/2, BOARD_HEIGHT/2), "Checkmate", (0, 0, 0))
+        elif self.state.stalemate:
+            self.font.render_to(self.screen, (BOARD_WIDTH/2, BOARD_HEIGHT/2), "Stalemate", (0, 0, 0))
 
     def draw_board(self):
         # Draws board
@@ -405,9 +371,9 @@ class Game:
                 # is a dark square)
                 index = (r + c) % 2
                 if ((r, c) == self.highlighted_square) or ((r, c) in self.highlighted_move):
-                    pygame.draw.rect(self.screen, highlight_colors[index], pygame.Rect(c*SQ_SIZE+BEZEL, r*SQ_SIZE+BEZEL, SQ_SIZE, SQ_SIZE))
+                    pygame.draw.rect(self.screen, highlight_colors[index], pygame.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
                     continue
-                pygame.draw.rect(self.screen, colors[index], pygame.Rect(c*SQ_SIZE+BEZEL, r*SQ_SIZE+BEZEL, SQ_SIZE, SQ_SIZE))
+                pygame.draw.rect(self.screen, colors[index], pygame.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
     def draw_pieces(self):
         # draws the pieces
@@ -415,7 +381,7 @@ class Game:
             for c in range(DIM):
                 piece = self.state.board[r][c]
                 if piece != "  ":
-                    self.screen.blit(self.images[piece], (SQ_SIZE*c+BEZEL, SQ_SIZE*r+BEZEL))
+                    self.screen.blit(self.images[piece], (SQ_SIZE*c, SQ_SIZE*r))
 
 def main():
     # creates game
