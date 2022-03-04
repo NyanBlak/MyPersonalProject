@@ -95,7 +95,7 @@ def check_win(sticks, player_num) -> bool:
         return True
     return False
 
-def get_move(current_player:int):
+def get_move(current_player:int, depth, stick_total):
     node = Node(depth, current_player, stick_total)
     # best_choice is the actual move that will be played
     # best_value is the best value of the nodes, these
@@ -108,6 +108,8 @@ def get_move(current_player:int):
         if (abs(current_player * INF - val) <= abs(current_player * INF - best_value)):
             best_value = val
             best_choice = i + 1
+    return best_choice
+
 # Runs only when this file is ran
 # Not run when imported
 def main():
@@ -123,9 +125,9 @@ def main():
             current_player *= -1
 
             # get move to play
-            move = get_move(current_player)
+            move = get_move(current_player, depth, stick_total)
             
-            print(f"Computer pulls: {str(best_choice)} sticks")
+            print(f"Computer pulls: {str(move)} sticks\n")
             stick_total -= move
             check_win(stick_total, current_player)
             current_player *= -1

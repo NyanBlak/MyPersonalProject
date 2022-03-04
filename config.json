@@ -1,9 +1,9 @@
 {
-	"resolution" : [800, 800],
-	"light_square_color" : [234, 233, 211],
-	"dark_square_color" : [77, 116, 152],
+	"resolution" : [700, 700],
+	"light_square_color" : [239, 239, 239],
+	"dark_square_color" : [136, 121, 181],
 	"theme_set" : "BasicPieces",
 	"select_color" : [255, 0, 0],
-	"dark_highlight_color" : [52, 142, 202],
-	"light_highlight_color" : [131, 200, 232]
+	"dark_highlight_color" : [131, 147, 191],
+	"light_highlight_color" : [183, 205, 219]
 }
