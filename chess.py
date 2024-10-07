@@ -346,8 +346,19 @@ class Game:
             )
 
     def write_move_list(self):
+        i = 0
+        move_number = 1
+        move_list = ""
+        for move in self.state.move_list:
+            # If it was white's move
+            if i % 2 == 0:
+                move_list += f"{move_number}. {move}"
+            else:
+                move_list += f"      {move}\n"
+                move_number += 1
+            i += 1
         with open("move_list.txt", "w") as f:
-            f.write(self.state.move_list)
+            f.write(move_list)
 
     def draw(self):
         # draws all graphics to the window
